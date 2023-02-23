@@ -18,7 +18,7 @@ async function resizeImage(img) {
         version: process.env.REPLICATE_SCALE_VERSION,
         input: { 
             image: img,
-            scale: 2,
+            scale: 4,
             face_enhance: true
         },
         webhook_completed: `${HOST}/webhook-scale`

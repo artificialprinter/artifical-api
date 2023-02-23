@@ -89,6 +89,10 @@ api.post('/webhook-diffusion', async (req, res) => {
   
         if (resizeRes.id) {
           resultImages.images[resizeRes.id] = combinedRes;
+          
+          const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, imgUrl);
+
+          resultImages.images[resizeRes.id].printifyId = uploadToPrintifyRes.id;
         } else {
           res.statusCode = 500;
           res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: output is empty. Images did not generated' }));
@@ -223,9 +227,6 @@ api.post('/printify-product', async (req, res) => {
   const imageData = await imagesCollection.find({ [`images.${imageId}`]: { $exists: true }}).toArray();
   
   let product;
-
-  console.log('imageData', imageData);
-  console.log('imageData[0].printifyId', imageData[0].images[imageId].printifyId);
 
   if (type === 't-shirt') {
     product = await generateTShirtProduct(shops, blueprints, imageData[0].images[imageId].printifyId, prompt, number);
