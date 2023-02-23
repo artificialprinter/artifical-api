@@ -120,7 +120,7 @@ api.post('/webhook-scale', async (req, res) => {
         [`images.${resizeId}`]: { $exists: true }
       },
       { 
-        $set: { [`images.${resizeId}.imageFull`]: req.body.output, printifyId: uploadToPrintifyRes.id }
+        $set: { [`images.${resizeId}.imageFull`]: req.body.output, [`images.${resizeId}.printifyId`]: uploadToPrintifyRes.id }
       }
     );
 
@@ -225,10 +225,10 @@ api.post('/printify-product', async (req, res) => {
   let product;
 
   console.log('imageData', imageData);
-  console.log('imageData[0].printifyId', imageData[0].printifyId);
+  console.log('imageData[0].printifyId', imageData[0].images[imageId].printifyId);
 
   if (type === 't-shirt') {
-    product = await generateTShirtProduct(shops, blueprints, imageData[0].printifyId, prompt);
+    product = await generateTShirtProduct(shops, blueprints, imageData[0].images[imageId].printifyId, prompt);
   }
 
   res.statusCode = 200;
