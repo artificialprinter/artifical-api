@@ -8,6 +8,7 @@ import bodyParser from 'body-parser';
 
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
 import { combineTShirtImage, resizeImage } from './util/image-handler.js';
+import { uploadImage, generateProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
 import { read } from './util/filestorage.js';
 
@@ -83,6 +84,7 @@ api.post('/webhook-diffusion', async (req, res) => {
       for (let i = 0; i < req.body.output.length; i++) {
         const imgUrl = req.body.output[i];
         const resizeRes = await resizeImage(imgUrl);
+
         const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
   
         if (resizeRes.id) {
@@ -94,8 +96,6 @@ api.post('/webhook-diffusion', async (req, res) => {
           return;
         }
       }
-  
-      console.log('Got diffusion', resultImages);  
     } else {
       if (req.body.error) {
         resultImages.error = req.body.error;
@@ -122,6 +122,8 @@ api.post('/webhook-scale', async (req, res) => {
         $set: { [`images.${resizeId}.imageFull`]: req.body.output }
       }
     );
+
+    uploadImage(`ai-scale-diffusion-result-${resizeId}.png`, req.body.output);
 
     res.status(200).send(updateResult);
   } else {
@@ -213,6 +215,14 @@ api.get('/images/:image', async (req, res) => {
         res.send(fileResult).end();
       }
     }
+});
+
+api.post('/printify-product', async (req, res) => {
+  const { imageId } = req.body;
+  const product = await generateProduct(imageId);
+
+  res.statusCode = 200;
+  res.end(JSON.stringify(product));
 });
 
 

@@ -41,26 +41,17 @@ async function combineTShirtImage(img, id) {
     const srcImage = await Jimp.read(img);
     const { width, height } = tShirtMockup.bitmap;
     const uniqueNumber = `${Math.random()}-${id}`;
-    const tShirtMockupBlack = tShirtMockup.clone();
-    const blackImage = tShirtMockupBlack.invert();
 
     const resizedSrc = srcImage.scaleToFit(srcImage.bitmap.width / 1.2, srcImage.bitmap.height / 1.2, Jimp.RESIZE_NEAREST_NEIGHBOR);
     const composeImageTShirt = tShirtMockup.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 3.7);
-    const composeImageBlackTShirt = blackImage.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 3.7);
     
     /** GET IMAGES BUFFERS: */
-    const standardImgBuffer = await srcImage.getBufferAsync(Jimp.MIME_PNG); /** SMALL SRC IMG */
     const tShirtResultBuffer = await composeImageTShirt.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
-    const blackTShirtResultBuffer = await composeImageBlackTShirt.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH BLACK T-SHIRT */
 
-    write(`${IMAGE_URL_PREFIX}-${uniqueNumber}.png`, standardImgBuffer);
     write(`${TSHIRT_URL_PREFIX}-${uniqueNumber}.png`, tShirtResultBuffer);
-    write(`${TSHIRT_BLACK_URL_PREFIX}-${uniqueNumber}.png`, blackTShirtResultBuffer);
 
     return {
-        imageStandard: `${HOST}/images/${IMAGE_URL_PREFIX}-${uniqueNumber}.png`,
         tShirtResult: `${HOST}/images/${TSHIRT_URL_PREFIX}-${uniqueNumber}.png`,
-        tShirtBlackResult: `${HOST}/images/${TSHIRT_BLACK_URL_PREFIX}-${uniqueNumber}.png`,
     };
 }
 
