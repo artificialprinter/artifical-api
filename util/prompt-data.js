@@ -22,10 +22,10 @@ export default [
         'value': 'Inspired by pop culture, iconic characters, fan-favorite designs, beloved franchises, popular fandoms, highly recognizable, culturally significant, trendsetting style, collectible merchandise, pop culture phenomena',
         'created': '2023-02-02T14:24:16.000Z',
         'modified': '2023-02-02T14:24:16.000Z'
-    }
+    },
     {
         'key': 'extend-text:5',
-        'value': ', detailed, intricate, full of color, cinematic lighting, hyperrealistic, focused, extreme details, unreal engine 5, cinematic, masterpiece'
+        'value': ', detailed, intricate, full of color, cinematic lighting, hyperrealistic, focused, extreme details, unreal engine 5, cinematic, masterpiece',
         'created': '2023-02-02T14:24:16.000Z',
         'modified': '2023-02-02T14:24:16.000Z'
     }
