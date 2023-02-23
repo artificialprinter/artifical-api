@@ -25,6 +25,8 @@ api.get('/', async (req, res) => {
 api.post('/prompt', async (req, res) => {
   let prompts;
 
+  console.log('req.body', req.body);
+
   if (req.body.fullPrompt) {
     prompts = [req.body.fullPrompt];
   } else if (req.body.prompt) {
