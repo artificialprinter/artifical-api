@@ -227,7 +227,7 @@ api.post('/printify-product', async (req, res) => {
   console.log('imageData', imageData);
 
   if (type === 't-shirt') {
-    product = await generateTShirtProduct(shops, blueprints, imageData.printifyId, prompt);
+    product = await generateTShirtProduct(shops, blueprints, imageData[0].printifyId, prompt);
   }
 
   res.statusCode = 200;
