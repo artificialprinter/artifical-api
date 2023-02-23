@@ -43,8 +43,8 @@ async function combineTShirtImage(img, id) {
     const uniqueNumber = `${Math.random()}-${id}`;
 
     const resizedSrc = srcImage.scaleToFit(srcImage.bitmap.width / 1.2, srcImage.bitmap.height / 1.2, Jimp.RESIZE_NEAREST_NEIGHBOR);
-    const blackTShirt = tShirtMockup.invert();
     const composeImageTShirt = tShirtMockup.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 3.7);
+    const blackTShirt = tShirtMockup.invert();
     const composeImageBlackTShirt = blackTShirt.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 3.7);
     
     /** GET IMAGES BUFFERS: */

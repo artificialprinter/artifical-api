@@ -29,7 +29,7 @@ api.post('/prompt', async (req, res) => {
     prompts = [req.body.fullPrompt];
   } else if (req.body.prompt) {
     if (req.body.preventAutoExtend) {
-      prompts = [req.body.prompt, req.body.prompt];
+      prompts = [req.body.prompt];
     } else {
       prompts = await promptGenerate(req.body.prompt, req.body.randomPromptsCount || 1);
     }
