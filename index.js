@@ -114,16 +114,15 @@ api.post('/webhook-diffusion', async (req, res) => {
 api.post('/webhook-scale', async (req, res) => {
   if (req.body?.output) {
     const resizeId = req.body.id;
+    const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeId}.png`, req.body.output);
     const updateResult = await imagesCollection.updateOne(
       {
         [`images.${resizeId}`]: { $exists: true }
       },
       { 
-        $set: { [`images.${resizeId}.imageFull`]: req.body.output }
+        $set: { [`images.${resizeId}.imageFull`]: req.body.output, printifyId: uploadToPrintifyRes.id }
       }
     );
-
-    uploadImage(`ai-scale-diffusion-result-${resizeId}.png`, req.body.output);
 
     res.status(200).send(updateResult);
   } else {
@@ -221,10 +220,14 @@ api.post('/printify-product', async (req, res) => {
   const { imageId, type, prompt } = req.body;
   const shops = await getShops();
   const blueprints = await getBlueprints();
+  const imageData = await imagesCollection.find({ requestId: imageId, images: { $ne: null } }).toArray();
+  
   let product;
 
+  console.log('imageData', imageData);
+
   if (type === 't-shirt') {
-    product = await generateTShirtProduct(shops, blueprints, imageId, prompt);
+    product = await generateTShirtProduct(shops, blueprints, imageData.printifyId, prompt);
   }
 
   res.statusCode = 200;
