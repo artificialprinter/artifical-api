@@ -92,16 +92,17 @@ export const getProviderVariants = async (blueprint, provider) => {
 export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) => {
     const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
     const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
+    
+    console.log('shops', shops);
+    console.log('shopId', shopId);
+    console.log('blueprintId', blueprintId);
 
     const providers = await getPrintProviders(blueprintId);
     const providerId = providers.filter((provider) => provider.name === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
 
     const variants = await getProviderVariants(blueprintId, providerId);
 
-    console.log('shops', shops);
-    console.log('shopId', shopId);
-    console.log('blueprintId', blueprintId);
-    console.log('providers', variants);
+    console.log('variants', variants);
 
     const headers = new Headers();
     
