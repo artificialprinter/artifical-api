@@ -217,7 +217,7 @@ api.get('/images/:image', async (req, res) => {
 });
 
 api.post('/printify-product', async (req, res) => {
-  const { imageId, type, prompt } = req.body;
+  const { imageId, type, prompt, number } = req.body;
   const shops = await getShops();
   const blueprints = await getBlueprints();
   const imageData = await imagesCollection.find({ [`images.${imageId}`]: { $exists: true }}).toArray();
@@ -228,7 +228,7 @@ api.post('/printify-product', async (req, res) => {
   console.log('imageData[0].printifyId', imageData[0].images[imageId].printifyId);
 
   if (type === 't-shirt') {
-    product = await generateTShirtProduct(shops, blueprints, imageData[0].images[imageId].printifyId, prompt);
+    product = await generateTShirtProduct(shops, blueprints, imageData[0].images[imageId].printifyId, prompt, number);
   }
 
   res.statusCode = 200;

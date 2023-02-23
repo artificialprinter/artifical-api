@@ -89,7 +89,7 @@ export const getProviderVariants = async (blueprint, provider) => {
     return await variants.json();
 };
 
-export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) => {
+export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, number) => {
     const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
     const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
     
@@ -114,7 +114,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
         headers: headers,
         redirect: 'follow',
         body: JSON.stringify({
-            'title': `Artifical Printed T-Shirt Image number: ${imageId}`,
+            'title': `Artifical Printed T-Shirt ${prompt} - ${number || 1}`,
             'description': prompt || '',
             'blueprint_id': blueprintId,
             'print_provider_id': providerId,

@@ -6,8 +6,6 @@ const HOST = process.env.CYCLIC_URL || 'localhost';
 const tShirtMockupPath = './public/t-shirt-mockup.png';
 const tShirtMockup = await Jimp.read(tShirtMockupPath);
 const TSHIRT_URL_PREFIX = 't-shirt-image';
-const TSHIRT_BLACK_URL_PREFIX = 't-shirt-image-black';
-const IMAGE_URL_PREFIX = 'small-image';
 
 async function resizeImage(img) {
     const response = await fetch('https://api.replicate.com/v1/predictions', {
@@ -20,7 +18,7 @@ async function resizeImage(img) {
         version: process.env.REPLICATE_SCALE_VERSION,
         input: { 
             image: img,
-            scale: 4,
+            scale: 2,
             face_enhance: true
         },
         webhook_completed: `${HOST}/webhook-scale`
