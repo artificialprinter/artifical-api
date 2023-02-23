@@ -109,8 +109,6 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
     headers.append('Authorization', `Bearer ${apiKey}`);
     headers.append('Content-Type', 'application/json');
 
-    console.log('imageId', imageId);
-
     const requestOptions = {
         method: 'POST',
         headers: headers,
@@ -150,6 +148,15 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
     };
 
     const product = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, requestOptions);
+    const productResult = await product.json();
 
-    return await product.json();
+    console.log('product', productResult);
+
+    const publishProduct = await fetch(`https://api.printify.com/v1/shops/${shopId}/products/${productResult.id}/publish.json`, {
+        method: 'POST',
+        headers: headers,
+        redirect: 'follow',
+    });
+
+    return await publishProduct.json();
 };
