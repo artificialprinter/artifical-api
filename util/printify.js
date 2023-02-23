@@ -48,7 +48,7 @@ export const getBlueprints = async () => {
         redirect: 'follow'
       };
       
-    const blueprints = fetch('https://api.printify.com/v1/catalog/blueprints.json', requestOptions);
+    const blueprints = await fetch('https://api.printify.com/v1/catalog/blueprints.json', requestOptions);
 
     return await blueprints.json();
 };
