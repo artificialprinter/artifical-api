@@ -114,7 +114,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
         headers: headers,
         redirect: 'follow',
         body: JSON.stringify({
-            'title': 'Artifical Printed T-Shirt',
+            'title': `Artifical Printed T-Shirt ${prompt}`,
             'description': prompt || '',
             'blueprint_id': blueprintId,
             'print_provider_id': providerId,
@@ -136,7 +136,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
                             'id': imageId, 
                             'x': 0.5, 
                             'y': 0.5, 
-                            'scale': 0.25,
+                            'scale': 1,
                             'angle': 0
                           }
                       ]
@@ -152,7 +152,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
 
     console.log('product', productResult);
 
-    const publishProduct = await fetch(`https://api.printify.com/v1/shops/${shopId}/products/${productResult.id}/publish.json`, {
+    await fetch(`https://api.printify.com/v1/shops/${shopId}/products/${productResult.id}/publish.json`, {
         method: 'POST',
         headers: headers,
         redirect: 'follow',
@@ -167,5 +167,5 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
         })
     });
 
-    return await publishProduct.json();
+    return await productResult;
 };
