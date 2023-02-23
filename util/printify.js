@@ -37,6 +37,26 @@ export const getShops = async () => {
     return await shops.json();
 };
 
-export const generateProduct = async (imageId) => {
-    //imageId
+export const getBlueprints = async () => {
+    const headers = new Headers();
+    
+    headers.append('Authorization', apiKey);
+
+    const requestOptions = {
+        method: 'GET',
+        headers: headers,
+        redirect: 'follow'
+      };
+      
+    const blueprints = fetch('https://api.printify.com/v1/catalog/blueprints.json', requestOptions);
+
+    return await blueprints.json();
+};
+
+export const generateProduct = async (shops, blueprints, imageId) => {
+    console.log('shops:', shops);
+    console.log('blueprints:', blueprints);
+    console.log('imageId:', imageId);
+
+    return {};
 };

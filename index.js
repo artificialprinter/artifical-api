@@ -8,7 +8,7 @@ import bodyParser from 'body-parser';
 
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
 import { combineTShirtImage, resizeImage } from './util/image-handler.js';
-import { uploadImage, generateProduct } from './util/printify.js';
+import { getShops, uploadImage, getBlueprints, generateProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
 import { read } from './util/filestorage.js';
 
@@ -32,7 +32,7 @@ api.post('/prompt', async (req, res) => {
     if (req.body.preventAutoExtend) {
       prompts = [req.body.prompt];
     } else {
-      prompts = await promptGenerate(req.body.prompt, req.body.randomPromptsCount || 1);
+      prompts = await promptGenerate(req.body.prompt, 1);
     }
   } else {
     res.statusCode = 500;
@@ -219,7 +219,9 @@ api.get('/images/:image', async (req, res) => {
 
 api.post('/printify-product', async (req, res) => {
   const { imageId } = req.body;
-  const product = await generateProduct(imageId);
+  const shops = await getShops();
+  const blueprints = await getBlueprints();
+  const product = await generateProduct(shops, blueprints, imageId);
 
   res.statusCode = 200;
   res.end(JSON.stringify(product));
