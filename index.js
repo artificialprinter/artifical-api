@@ -220,7 +220,7 @@ api.post('/printify-product', async (req, res) => {
   const { imageId, type, prompt } = req.body;
   const shops = await getShops();
   const blueprints = await getBlueprints();
-  const imageData = await imagesCollection.find({ requestId: imageId, images: { $ne: null } }).toArray();
+  const imageData = await imagesCollection.find({ [`images.${imageId}`]: { $exists: true }}).toArray();
   
   let product;
 
