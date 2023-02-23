@@ -58,8 +58,8 @@ export const getBlueprints = async () => {
 export const generateTShirtProduct = async (shops, blueprints, imageId) => {
     console.log('imageId:', imageId);
     
-    const shopId = [shops.filter((shop) => shop.title === SHOP_NAME)].id;
-    const blueprintId = [blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)].id;
+    const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
+    const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
 
     console.log('shops', shops);
     console.log('shopId', shopId);
