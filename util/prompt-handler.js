@@ -14,7 +14,7 @@ async function promptGenerate(prompt, randomPromptsCount) {
     const result = [];
 
     for (let i = 0; i < randomPromptsCount; i++) {
-      randomKeys[i] && result.push(`${prompt}, ${promptData[randomKeys[i]].value}`);
+      randomKeys[i] && promptData[randomKeys[i]] && result.push(`${prompt}, ${promptData[randomKeys[i]].value}`);
     }
 
     return result;
