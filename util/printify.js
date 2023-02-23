@@ -4,7 +4,7 @@ export const uploadImage = async (imageName, imageUrl) => {
     const headers = new Headers();
     
     headers.append('Content-Type', 'application/json');
-    headers.append('Authorization', apiKey);
+    headers.append('Authorization', `Bearer ${apiKey}`);
     
     const requestOptions = {
         method: 'POST',
@@ -24,7 +24,7 @@ export const uploadImage = async (imageName, imageUrl) => {
 export const getShops = async () => {
     const headers = new Headers();
     
-    headers.append('Authorization', apiKey);
+    headers.append('Authorization', `Bearer ${apiKey}`);
     
     const requestOptions = {
         method: 'GET',
@@ -40,7 +40,7 @@ export const getShops = async () => {
 export const getBlueprints = async () => {
     const headers = new Headers();
     
-    headers.append('Authorization', apiKey);
+    headers.append('Authorization', `Bearer ${apiKey}`);
 
     const requestOptions = {
         method: 'GET',
