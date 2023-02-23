@@ -98,7 +98,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
     console.log('blueprintId', blueprintId);
 
     const providers = await getPrintProviders(blueprintId);
-    const providerId = providers.filter((provider) => provider.name === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
+    const providerId = providers.filter((provider) => provider.title === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
 
     const variants = await getProviderVariants(blueprintId, providerId);
 
