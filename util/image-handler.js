@@ -5,7 +5,6 @@ const HOST = process.env.CYCLIC_URL || 'localhost';
 
 const tShirtMockupPath = './public/t-shirt-mockup.png';
 const tShirtMockup = await Jimp.read(tShirtMockupPath);
-const tShirtMockupBlack = tShirtMockup.clone();
 const TSHIRT_URL_PREFIX = 't-shirt-image';
 const TSHIRT_BLACK_URL_PREFIX = 't-shirt-image-black';
 const IMAGE_URL_PREFIX = 'small-image';
@@ -42,7 +41,8 @@ async function combineTShirtImage(img, id) {
     const srcImage = await Jimp.read(img);
     const { width, height } = tShirtMockup.bitmap;
     const uniqueNumber = `${Math.random()}-${id}`;
-    const blackImage = await tShirtMockupBlack.invert();
+    const tShirtMockupBlack = tShirtMockup.clone();
+    const blackImage = tShirtMockupBlack.invert();
 
     const resizedSrc = srcImage.scaleToFit(srcImage.bitmap.width / 1.2, srcImage.bitmap.height / 1.2, Jimp.RESIZE_NEAREST_NEIGHBOR);
     const composeImageTShirt = tShirtMockup.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 3.7);
