@@ -114,7 +114,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
         headers: headers,
         redirect: 'follow',
         body: JSON.stringify({
-            'title': `Artifical Printed T-Shirt ${prompt}`,
+            'title': `Artifical Printed T-Shirt Image number: ${imageId}`,
             'description': prompt || '',
             'blueprint_id': blueprintId,
             'print_provider_id': providerId,
