@@ -156,6 +156,15 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
         method: 'POST',
         headers: headers,
         redirect: 'follow',
+        body: JSON.stringify({
+            'title': true,
+            'description': true,
+            'images': true,
+            'variants': true,
+            'tags': true,
+            'keyFeatures': true,
+            'shipping_template': true
+        })
     });
 
     return await publishProduct.json();
