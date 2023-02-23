@@ -109,6 +109,8 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) 
     headers.append('Authorization', `Bearer ${apiKey}`);
     headers.append('Content-Type', 'application/json');
 
+    console.log('imageId', imageId);
+
     const requestOptions = {
         method: 'POST',
         headers: headers,
