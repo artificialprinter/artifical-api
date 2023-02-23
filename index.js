@@ -218,13 +218,13 @@ api.get('/images/:image', async (req, res) => {
 });
 
 api.post('/printify-product', async (req, res) => {
-  const { imageId, type } = req.body;
+  const { imageId, type, prompt } = req.body;
   const shops = await getShops();
   const blueprints = await getBlueprints();
   let product;
 
   if (type === 't-shirt') {
-    product = await generateTShirtProduct(shops, blueprints, imageId);
+    product = await generateTShirtProduct(shops, blueprints, imageId, prompt);
   }
 
   res.statusCode = 200;

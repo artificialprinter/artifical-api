@@ -1,6 +1,8 @@
 const apiKey = process.env.PRINTIFY_API_KEY;
 const SHOP_NAME = 'Artificial Printer';
-const T_SHIRT_BLUEPRINT_NAME = 'Artificial Printer';
+const T_SHIRT_BLUEPRINT_NAME = 'Unisex Ultra Cotton Tee';
+const T_SHIRT_PRINT_PROVIDER_NAME = 'SwiftPOD';
+const T_SHIRT_PRICE = 39.99;
 
 export const uploadImage = async (imageName, imageUrl) => {
     const headers = new Headers();
@@ -55,15 +57,96 @@ export const getBlueprints = async () => {
     return await blueprints.json();
 };
 
-export const generateTShirtProduct = async (shops, blueprints, imageId) => {
-    console.log('imageId:', imageId);
+export const getPrintProviders = async (blueprint) => {
+    const headers = new Headers();
     
+    headers.append('Authorization', `Bearer ${apiKey}`);
+
+    const requestOptions = {
+        method: 'GET',
+        headers: headers,
+        redirect: 'follow'
+      };
+      
+    const providers = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers.json`, requestOptions);
+
+    return await providers.json();
+};
+
+export const getProviderVariants = async (blueprint, provider) => {
+    const headers = new Headers();
+    
+    headers.append('Authorization', `Bearer ${apiKey}`);
+
+    const requestOptions = {
+        method: 'GET',
+        headers: headers,
+        redirect: 'follow'
+      };
+      
+    const variants = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers/${provider}/variants.json`, requestOptions);
+
+    return await variants.json();
+};
+
+export const generateTShirtProduct = async (shops, blueprints, imageId, prompt) => {
     const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
     const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
+
+    const providers = await getPrintProviders(blueprintId);
+    const providerId = providers.filter((provider) => provider.name === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
+
+    const variants = await getProviderVariants(blueprintId, providerId);
 
     console.log('shops', shops);
     console.log('shopId', shopId);
     console.log('blueprintId', blueprintId);
+    console.log('providers', variants);
 
-    return {};
+    const headers = new Headers();
+    
+    headers.append('Authorization', `Bearer ${apiKey}`);
+    headers.append('Content-Type', 'application/json');
+
+    const requestOptions = {
+        method: 'POST',
+        headers: headers,
+        redirect: 'follow',
+        body: JSON.stringify({
+            'title': 'Artifical Printed T-Shirt',
+            'description': prompt || '',
+            'blueprint_id': blueprintId,
+            'print_provider_id': providerId,
+            'variants': variants.variants.map((variant) => {
+                return {
+                    id: variant.id,
+                    price: T_SHIRT_PRICE,
+                    is_enabled: true
+                };
+            }),
+              'print_areas': [
+                {
+                  'variant_ids': variants.variants.map((variant) => variant.id),
+                  'placeholders': [
+                    {
+                      'position': 'front',
+                      'images': [
+                          {
+                            'id': imageId, 
+                            'x': 0.5, 
+                            'y': 0.5, 
+                            'scale': 0.25,
+                            'angle': 0
+                          }
+                      ]
+                    }
+                  ]
+                }
+              ]
+          })
+    };
+
+    const product = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, requestOptions);
+
+    return await product.json();
 };
