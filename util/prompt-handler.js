@@ -6,11 +6,18 @@ const HOST = process.env.CYCLIC_URL || 'localhost';
 const IMAGES_PER_REQUEST = 2;
 import promptData from './prompt-data.js';
 
-async function promptGenerate(prompt) {
-    const randomKey1 = Math.floor(Math.random() * (promptData.length / 2)) + promptData.length - 2;
-    const randomKey2 = Math.floor(Math.random() * (promptData.length / 2));
+async function promptGenerate(prompt, randomPromptsCount) {
+    const randomKeys = [
+      Math.floor(Math.random() * (promptData.length / 2)) + promptData.length - 2, 
+      Math.floor(Math.random() * (promptData.length / 2))
+    ];
+    const result = [];
 
-    return [`${prompt}, ${promptData[randomKey1].value}`, `${prompt}, ${promptData[randomKey2].value}`];
+    for (let i = 0; i < randomPromptsCount; i++) {
+      randomKeys[i] && result.push(`${prompt}, ${promptData[randomKeys[i]].value}`);
+    }
+
+    return result;
 }
 
 async function allPromptsGenerate(prompt) {

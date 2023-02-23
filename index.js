@@ -28,7 +28,11 @@ api.post('/prompt', async (req, res) => {
   if (req.body.fullPrompt) {
     prompts = [req.body.fullPrompt];
   } else if (req.body.prompt) {
-    prompts = await promptGenerate(req.body.prompt);
+    if (req.body.preventAutoExtend) {
+      prompts = [req.body.prompt];
+    } else {
+      prompts = await promptGenerate(req.body.prompt, req.body.randomPromptsCount || 1);
+    }
   } else {
     res.statusCode = 500;
     res.end(JSON.stringify({ detail: 'Prompt param not provided!' }));
