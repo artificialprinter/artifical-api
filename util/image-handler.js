@@ -5,7 +5,7 @@ const HOST = process.env.CYCLIC_URL || 'localhost';
 
 const tShirtMockupPath = './public/t-shirt-mockup.png';
 const tShirtMockup = await Jimp.read(tShirtMockupPath);
-const tShirtMockupBlack = await Jimp.read(tShirtMockupPath);
+const tShirtMockupBlack = tShirtMockup.clone();
 const TSHIRT_URL_PREFIX = 't-shirt-image';
 const TSHIRT_BLACK_URL_PREFIX = 't-shirt-image-black';
 const IMAGE_URL_PREFIX = 'small-image';
