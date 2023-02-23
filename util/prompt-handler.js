@@ -8,8 +8,8 @@ import promptData from './prompt-data.js';
 
 async function promptGenerate(prompt, randomPromptsCount) {
     const randomKeys = [
-      Math.floor(Math.random() * (promptData.length / 2)) + promptData.length - 2, 
-      Math.floor(Math.random() * (promptData.length / 2))
+      Math.floor(Math.random() * Math.floor(promptData.length / 2)) + promptData.length - 2, 
+      Math.floor(Math.random() * Math.floor(promptData.length / 2))
     ];
     const result = [];
 
