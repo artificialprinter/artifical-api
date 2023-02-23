@@ -1,4 +1,6 @@
 const apiKey = process.env.PRINTIFY_API_KEY;
+const SHOP_NAME = 'Artificial Printer';
+const T_SHIRT_BLUEPRINT_NAME = 'Artificial Printer';
 
 export const uploadImage = async (imageName, imageUrl) => {
     const headers = new Headers();
@@ -53,10 +55,14 @@ export const getBlueprints = async () => {
     return await blueprints.json();
 };
 
-export const generateProduct = async (shops, blueprints, imageId) => {
-    console.log('shops:', shops);
-    console.log('blueprints:', blueprints);
+export const generateTShirtProduct = async (shops, blueprints, imageId) => {
     console.log('imageId:', imageId);
+    
+    const shopId = shops.filter((shop) => shop.title === SHOP_NAME).id;
+    const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME).id;
+
+    console.log('shopId', shopId);
+    console.log('blueprintId', blueprintId);
 
     return {};
 };
