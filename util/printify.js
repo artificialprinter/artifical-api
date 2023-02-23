@@ -2,7 +2,7 @@ const apiKey = process.env.PRINTIFY_API_KEY;
 const SHOP_NAME = 'Artificial Printer';
 const T_SHIRT_BLUEPRINT_NAME = 'Unisex Ultra Cotton Tee';
 const T_SHIRT_PRINT_PROVIDER_NAME = 'SwiftPOD';
-const T_SHIRT_PRICE = 39.99;
+const T_SHIRT_PRICE = 3999;
 
 export const uploadImage = async (imageName, imageUrl) => {
     const headers = new Headers();
