@@ -115,7 +115,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
     const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
     const headers = new Headers();
 
-    console.log('filteredVariants', filteredVariants);
+    console.log('filteredVariants', filteredVariants.length, filteredVariants);
     
     headers.append('Authorization', `Bearer ${apiKey}`);
     headers.append('Content-Type', 'application/json');
