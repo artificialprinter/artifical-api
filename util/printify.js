@@ -3,6 +3,17 @@ const SHOP_NAME = 'Artificial Printer';
 const T_SHIRT_BLUEPRINT_NAME = 'Unisex Ultra Cotton Tee';
 const T_SHIRT_PRINT_PROVIDER_NAME = 'SwiftPOD';
 const T_SHIRT_PRICE = 3999;
+const T_SHIRT_VARIANTS = [
+  'Black / S',
+  'Black / M',
+  'Black / L',
+  'White / S',
+  'White / M',
+  'White / L',
+  'Sand / S',
+  'Sand / M',
+  'Sand / L'
+];
 
 export const uploadImage = async (imageName, imageUrl) => {
     const headers = new Headers();
@@ -101,10 +112,10 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
     const providerId = providers.filter((provider) => provider.title === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
 
     const variants = await getProviderVariants(blueprintId, providerId);
-
-    console.log('variants', variants);
-
+    const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
     const headers = new Headers();
+
+    console.log('filteredVariants', filteredVariants);
     
     headers.append('Authorization', `Bearer ${apiKey}`);
     headers.append('Content-Type', 'application/json');
@@ -118,7 +129,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
             'description': prompt || '',
             'blueprint_id': blueprintId,
             'print_provider_id': providerId,
-            'variants': variants.variants.map((variant) => {
+            'variants': filteredVariants.map((variant) => {
                 return {
                     id: variant.id,
                     price: T_SHIRT_PRICE,
@@ -127,7 +138,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
             }),
               'print_areas': [
                 {
-                  'variant_ids': variants.variants.map((variant) => variant.id),
+                  'variant_ids': filteredVariants.map((variant) => variant.id),
                   'placeholders': [
                     {
                       'position': 'front',
