@@ -1,18 +1,19 @@
 const apiKey = process.env.PRINTIFY_API_KEY;
 const SHOP_NAME = 'Artificial Printer';
-const T_SHIRT_BLUEPRINT_NAME = 'Unisex Ultra Cotton Tee';
+const T_SHIRT_BLUEPRINT_NAME = 'Unisex Jersey Short Sleeve Tee';
 const T_SHIRT_PRINT_PROVIDER_NAME = 'SwiftPOD';
 const T_SHIRT_PRICE = 3999;
 const T_SHIRT_VARIANTS = [
   'Black / S',
   'Black / M',
   'Black / L',
+  'Black / XL',
+  'Black / XXL',
   'White / S',
   'White / M',
   'White / L',
-  'Sand / S',
-  'Sand / M',
-  'Sand / L'
+  'White / XL',
+  'White / XXL',
 ];
 
 export const uploadImage = async (imageName, imageUrl) => {
@@ -114,6 +115,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
     const variants = await getProviderVariants(blueprintId, providerId);
     const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
     const headers = new Headers();
+    const userPrompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
 
     console.log('filteredVariants', filteredVariants.length, filteredVariants);
     
@@ -125,7 +127,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
         headers: headers,
         redirect: 'follow',
         body: JSON.stringify({
-            'title': `Artifical Printed T-Shirt ${prompt} - ${number || 1}`,
+            'title': `${userPrompt} - ${number || 1}`,
             'description': prompt || '',
             'blueprint_id': blueprintId,
             'print_provider_id': providerId,
