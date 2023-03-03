@@ -237,6 +237,7 @@ api.post('/printify-product', async (req, res) => {
   
   let product;
 
+  console.log('{ imageId, type, prompt, number }', { imageId, type, prompt, number });
   console.log('imageData', imageData);
 
   if (type === 't-shirt') {
