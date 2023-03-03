@@ -43,8 +43,7 @@ function promptDiffusion(prompt) {
           version: process.env.REPLICATE_DIFFUSION_VERSION,
           input: { 
             prompt,
-            width: IMAGE_MAX_SIZE.width,
-            height: IMAGE_MAX_SIZE.height,
+            image_dimensions: `${IMAGE_MAX_SIZE.width}x${IMAGE_MAX_SIZE.height}`,
             num_outputs: IMAGES_PER_REQUEST
           },
           webhook_completed: `${HOST}/webhook-diffusion`
