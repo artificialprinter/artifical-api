@@ -84,20 +84,11 @@ api.post('/webhook-diffusion', async (req, res) => {
       for (let i = 0; i < req.body.output.length; i++) {
         const imgUrl = req.body.output[i];
         const resizeRes = await resizeImage(imgUrl);
+        const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
 
         if (resizeRes.id) {
-          resultImages.images[resizeRes.id] = {};
-          resultImages.images[resizeRes.id].generatedImg = imgUrl;
-
-          await imagesCollection.updateOne({
-            prompt: resultImages.prompt,
-            requestId: resultImages.requestId
-          }, { $set: resultImages }, { upsert: true });
-  
-          const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
-          
-          combinedRes.generatedImg = imgUrl;
           resultImages.images[resizeRes.id] = combinedRes;
+          resultImages.images[resizeRes.id].generatedImg = imgUrl;
           
           const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
 
