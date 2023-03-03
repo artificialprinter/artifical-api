@@ -86,6 +86,7 @@ api.post('/webhook-diffusion', async (req, res) => {
         const resizeRes = await resizeImage(imgUrl);
 
         if (resizeRes.id) {
+          resultImages.images[resizeRes.id] = {};
           resultImages.images[resizeRes.id].generatedImg = imgUrl;
 
           await imagesCollection.updateOne({
