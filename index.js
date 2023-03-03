@@ -83,9 +83,8 @@ api.post('/webhook-diffusion', async (req, res) => {
     if (req.body.output?.length) {
       for (let i = 0; i < req.body.output.length; i++) {
         const imgUrl = req.body.output[i];
-        const resizeRes = await resizeImage(imgUrl);
-
         const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
+        const resizeRes = await resizeImage(imgUrl);
   
         if (resizeRes.id) {
           resultImages.images[resizeRes.id] = combinedRes;
