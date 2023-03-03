@@ -6,6 +6,7 @@ const HOST = process.env.CYCLIC_URL || 'localhost';
 const tShirtMockupPath = './public/t-shirt-mockup.png';
 const tShirtMockup = await Jimp.read(tShirtMockupPath);
 const TSHIRT_URL_PREFIX = 't-shirt-image';
+const CROP_URL_PREFIX = 'crop-image';
 
 async function resizeImage(img) {
     const response = await fetch('https://api.replicate.com/v1/predictions', {
@@ -18,7 +19,7 @@ async function resizeImage(img) {
         version: process.env.REPLICATE_SCALE_VERSION,
         input: { 
             image: img,
-            scale: 4,
+            scale: 3,
             face_enhance: true
         },
         webhook_completed: `${HOST}/webhook-scale`
@@ -40,15 +41,18 @@ async function combineTShirtImage(img, id) {
     const { width, height } = tShirtMockup.bitmap;
     const uniqueNumber = `${Math.random()}-${id}`;
 
-    const resizedSrc = srcImage.scaleToFit(srcImage.bitmap.width / 1.12, srcImage.bitmap.height, Jimp.RESIZE_NEAREST_NEIGHBOR);
+    const resizedSrc = srcImage.scaleToFit(srcImage.bitmap.width / 2.12, srcImage.bitmap.height / 2, Jimp.RESIZE_NEAREST_NEIGHBOR);
     const composeImageTShirt = tShirtMockup.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 4.1);
     
     /** GET IMAGES BUFFERS: */
     const tShirtResultBuffer = await composeImageTShirt.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
+    const cropResultBuffer = await resizedSrc.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
 
     write(`${TSHIRT_URL_PREFIX}-${uniqueNumber}.png`, tShirtResultBuffer);
+    write(`${CROP_URL_PREFIX}-${uniqueNumber}.png`, cropResultBuffer);
 
     return {
+        croppedImg: `${HOST}/images/${CROP_URL_PREFIX}-${uniqueNumber}.png`,
         tShirtResult: `${HOST}/images/${TSHIRT_URL_PREFIX}-${uniqueNumber}.png`,
     };
 }

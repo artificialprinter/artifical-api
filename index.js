@@ -90,7 +90,7 @@ api.post('/webhook-diffusion', async (req, res) => {
         if (resizeRes.id) {
           resultImages.images[resizeRes.id] = combinedRes;
           
-          const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, imgUrl);
+          const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
 
           resultImages.images[resizeRes.id].printifyId = uploadToPrintifyRes.id;
         } else {
