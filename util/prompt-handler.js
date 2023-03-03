@@ -1,6 +1,6 @@
 const IMAGE_MAX_SIZE = {
     width: 512,
-    height: 576,
+    height: 512,
 };
 const HOST = process.env.CYCLIC_URL || 'localhost';
 const IMAGES_PER_REQUEST = 2;
@@ -8,7 +8,7 @@ import promptData from './prompt-data.js';
 
 async function promptGenerate(prompt, randomPromptsCount) {
     const randomKeys = [
-      Math.floor(Math.random() * Math.floor(promptData.length / 2)) + promptData.length - Math.floor(promptData.length / 2), 
+      Math.floor(Math.random() * (promptData.length - Math.floor(promptData.length/2)) + Math.floor(promptData.length/2)), 
       Math.floor(Math.random() * Math.floor(promptData.length / 2))
     ];
     const result = [];

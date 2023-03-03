@@ -172,7 +172,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
         body: JSON.stringify({
             'title': true,
             'description': true,
-            'images': true,
+            'images': false,
             'variants': true,
             'tags': true,
             'keyFeatures': true,
