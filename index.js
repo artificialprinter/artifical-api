@@ -75,9 +75,14 @@ api.post('/prompt', async (req, res) => {
 api.post('/webhook-diffusion', async (req, res) => {
   const resultImages = {};
 
-  let updateQuery;
+
+  const updateQuery = {};
 
   if (req.body?.id) {
+    const logId = `webhook-diffusion_${req.body?.id}`;
+
+    console.time(logId);
+
     resultImages.prompt = req.body.input.prompt;
     resultImages.requestId = req.body.id;
     resultImages.images = {};
@@ -85,19 +90,22 @@ api.post('/webhook-diffusion', async (req, res) => {
     if (req.body.output?.length) {
       for (let i = 0; i < req.body.output.length; i++) {
         const imgUrl = req.body.output[i];
+        console.timeLog(logId, i);
         const resizeRes = await resizeImage(imgUrl);
+
+        console.timeLog(logId, i + '_resizeImage done');
         const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
+        console.timeLog(logId, i + '_combineTShirtImage done');
 
         if (resizeRes.id) {
           combinedRes.generatedImg = imgUrl;
           
           const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
+          console.timeLog(logId, i + '_uploadImage done');
 
           combinedRes.printifyId = uploadToPrintifyRes.id;
 
-          updateQuery = {
-              [`images.${resizeRes.id}`]: combinedRes
-          }
+          updateQuery[`images.${resizeRes.id}`] = combinedRes
         } else {
           res.statusCode = 500;
           res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: output is empty. Images did not generated' }));
@@ -118,6 +126,7 @@ api.post('/webhook-diffusion', async (req, res) => {
       requestId: resultImages.requestId
     }, { $set: updateQuery }, { upsert: true });
 
+    console.timeEnd(logId);
     res.status(200).send(result);
   } else {
     res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: no id in body' }));
@@ -156,7 +165,7 @@ api.get('/image', async (req, res) => {
     result = await imagesCollection.find({ prompt: `/.*${req.query.prompt}.*/i`, images: { $ne: null } }).toArray();
   } else {
     res.statusCode = 500;
-    res.end(JSON.stringify({ detail: 'Request should contain requestId or prompt field' }));
+    return res.end(JSON.stringify({ detail: 'Request should contain requestId or prompt field' }));
   }
 
   res.status(200).send(result);
