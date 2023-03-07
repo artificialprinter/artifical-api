@@ -125,7 +125,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
   const headers = new Headers();
   const userPrompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
 
-  console.log('filteredVariants', filteredVariants.length);
+  console.log('filteredVariants', filteredVariants.length, filteredVariants);
   
   headers.append('Authorization', `Bearer ${apiKey}`);
   headers.append('Content-Type', 'application/json');
@@ -139,32 +139,32 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
           'description': prompt || '',
           'blueprint_id': blueprintId,
           'print_provider_id': providerId,
-          'variants': filteredVariants.map((variant) => {
-              return {
-                  id: variant.id,
-                  price: T_SHIRT_PRICE,
-                  is_enabled: true
-              };
-          }),
-            'print_areas': [
-              {
-                'variant_ids': filteredVariants.map((variant) => variant.id),
-                'placeholders': [
-                  {
-                    'position': 'front',
-                    'images': [
-                        {
-                          'id': imageId, 
-                          'x': 0.5, 
-                          'y': 0.5, 
-                          'scale': 1,
-                          'angle': 0
-                        }
-                    ]
-                  }
-                ]
-              }
-            ]
+          // 'variants': filteredVariants.map((variant) => {
+          //     return {
+          //         id: variant.id,
+          //         price: T_SHIRT_PRICE,
+          //         is_enabled: true
+          //     };
+          // }),
+          'print_areas': [
+            {
+              'variant_ids': filteredVariants.map((variant) => variant.id),
+              'placeholders': [
+                {
+                  'position': 'front',
+                  'images': [
+                      {
+                        'id': imageId, 
+                        'x': 0.5, 
+                        'y': 0.5, 
+                        'scale': 1,
+                        'angle': 0
+                      }
+                  ]
+                }
+              ]
+            }
+          ]
         })
   };
 
