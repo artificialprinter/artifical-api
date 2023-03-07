@@ -112,6 +112,7 @@ api.post('/webhook-diffusion', async (req, res) => {
         if (resizeRes.id) {
           combinedRes.generatedImg = imgUrl;
           await imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true });
+          console.timeLog(logId, i + '_generatedImg saved');
 
           const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
           console.timeLog(logId, i + '_uploadImage done');
@@ -119,6 +120,7 @@ api.post('/webhook-diffusion', async (req, res) => {
           combinedRes.printifyId = uploadToPrintifyRes.id;
 
           await imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true });
+          console.timeLog(logId, i + '_printifyId saved');
         } else {
           res.statusCode = 500;
           res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: output is empty. Images did not generated' }));

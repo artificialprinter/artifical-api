@@ -16,6 +16,8 @@ const T_SHIRT_VARIANTS = [
   'White / XXL',
 ];
 
+let providersCache = {};
+
 export const uploadImage = async (imageName, imageUrl) => {
     const headers = new Headers();
     
@@ -69,10 +71,8 @@ export const getBlueprints = (async () => {
     return await blueprints.json();
 })();
 
-const providers = {};
-
 export const getPrintProviders = async (blueprint) => {
-  if (providers[blueprint]) return providers[blueprint];
+  if (providersCache[blueprint]) return providersCache[blueprint];
 
   const headers = new Headers();
   
@@ -86,15 +86,13 @@ export const getPrintProviders = async (blueprint) => {
     
   const providers = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers.json`, requestOptions);
 
-  providers[blueprint] = await providers.json()
+  providersCache[blueprint] = await providers.json()
 
-  return providers[blueprint];
+  return providersCache[blueprint];
 };
 
-
-const providerVariants = {};
 export const getProviderVariants = async (blueprint, provider) => {
-  if (providers[blueprint + provider]) return providers[blueprint + provider];
+  if (providersCache[blueprint + provider]) return providersCache[blueprint + provider];
   const headers = new Headers();
   
   headers.append('Authorization', `Bearer ${apiKey}`);
@@ -107,9 +105,9 @@ export const getProviderVariants = async (blueprint, provider) => {
     
   const variants = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers/${provider}/variants.json`, requestOptions);
 
-  providers[blueprint + provider] = await variants.json();
+  providersCache[blueprint + provider] = await variants.json();
 
-  return providers[blueprint + provider];
+  return providersCache[blueprint + provider];
 };
 
 export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, number) => {
