@@ -75,6 +75,8 @@ api.post('/prompt', async (req, res) => {
 api.post('/webhook-diffusion', async (req, res) => {
   const resultImages = {};
 
+  let updateQuery;
+
   if (req.body?.id) {
     resultImages.prompt = req.body.input.prompt;
     resultImages.requestId = req.body.id;
@@ -87,12 +89,15 @@ api.post('/webhook-diffusion', async (req, res) => {
         const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
 
         if (resizeRes.id) {
-          resultImages.images[resizeRes.id] = combinedRes;
-          resultImages.images[resizeRes.id].generatedImg = imgUrl;
+          combinedRes.generatedImg = imgUrl;
           
           const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
 
-          resultImages.images[resizeRes.id].printifyId = uploadToPrintifyRes.id;
+          combinedRes.printifyId = uploadToPrintifyRes.id;
+
+          updateQuery = {
+              [`images.${resizeRes.id}`]: combinedRes
+          }
         } else {
           res.statusCode = 500;
           res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: output is empty. Images did not generated' }));
@@ -102,16 +107,20 @@ api.post('/webhook-diffusion', async (req, res) => {
       }
     } else {
       if (req.body.error) {
-        resultImages.error = req.body.error;
+        updateQuery = {
+            error: req.body.error
+        }
       }
     }
 
-    const insertResult = await imagesCollection.updateOne({
+    const result = await imagesCollection.updateOne({
       prompt: resultImages.prompt,
       requestId: resultImages.requestId
-    }, { $set: resultImages }, { upsert: true });
+    }, { $set: updateQuery }, { upsert: true });
 
-    res.status(200).send(insertResult);
+    res.status(200).send(result);
+  } else {
+    res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: no id in body' }));
   }
 });
 
