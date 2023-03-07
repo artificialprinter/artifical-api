@@ -91,7 +91,7 @@ api.post('/webhook-diffusion', async (req, res) => {
       prompt: resultImages.prompt,
       requestId: resultImages.requestId
     };
-    
+
     if (req.body.error) {
       updateQuery = {
         error: req.body.error
@@ -248,8 +248,8 @@ api.get('/images/:image', async (req, res) => {
 
 api.post('/printify-product', async (req, res) => {
   const { imageId, type, prompt, number } = req.body;
-  const shops = await getShops();
-  const blueprints = await getBlueprints();
+  const shops = await getShops;
+  const blueprints = await getBlueprints;
   const imageData = await imagesCollection.find({ [`images.${imageId}`]: { $exists: true }}).toArray();
   
   let product;
