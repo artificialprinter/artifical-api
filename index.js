@@ -74,8 +74,12 @@ api.post('/prompt', async (req, res) => {
 
 api.post('/webhook-diffusion', async (req, res) => {
   const resultImages = {};
+  const unused = 1;
 
-
+  const query = {
+    prompt: resultImages.prompt,
+    requestId: resultImages.requestId
+  };
   const updateQuery = {};
 
   if (req.body?.id) {
@@ -87,44 +91,42 @@ api.post('/webhook-diffusion', async (req, res) => {
     resultImages.requestId = req.body.id;
     resultImages.images = {};
 
-    if (req.body.output?.length) {
-      for (let i = 0; i < req.body.output.length; i++) {
-        const imgUrl = req.body.output[i];
+    if (req.body.error) {
+      updateQuery = {
+        error: req.body.error
+      }
+      await imagesCollection.updateOne(query, { $set: updateQuery }, { upsert: true });
+    } else {
+      req.body.output.forEach(async (imgUrl, i) => {
         console.timeLog(logId, i);
         const resizeRes = await resizeImage(imgUrl);
 
         console.timeLog(logId, i + '_resizeImage done');
         const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
+        const _updateQuery = {
+          [`images.${resizeRes.id}`]: combinedRes
+        }
         console.timeLog(logId, i + '_combineTShirtImage done');
 
         if (resizeRes.id) {
           combinedRes.generatedImg = imgUrl;
-          
+          await imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true });
+
           const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
           console.timeLog(logId, i + '_uploadImage done');
 
           combinedRes.printifyId = uploadToPrintifyRes.id;
 
-          updateQuery[`images.${resizeRes.id}`] = combinedRes
+          await imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true });
         } else {
           res.statusCode = 500;
           res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: output is empty. Images did not generated' }));
-  
+
           return;
         }
-      }
-    } else {
-      if (req.body.error) {
-        updateQuery = {
-            error: req.body.error
-        }
-      }
+      })
     }
 
-    const result = await imagesCollection.updateOne({
-      prompt: resultImages.prompt,
-      requestId: resultImages.requestId
-    }, { $set: updateQuery }, { upsert: true });
 
     console.timeEnd(logId);
     res.status(200).send(result);
