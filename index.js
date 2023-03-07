@@ -97,7 +97,7 @@ api.post('/webhook-diffusion', async (req, res) => {
       }
       await imagesCollection.updateOne(query, { $set: updateQuery }, { upsert: true });
     } else {
-      req.body.output.forEach(async (imgUrl, i) => {
+      const promises = req.body.output.map(async (imgUrl, i) => {
         console.timeLog(logId, i);
         const resizeRes = await resizeImage(imgUrl);
 
@@ -125,9 +125,15 @@ api.post('/webhook-diffusion', async (req, res) => {
           return;
         }
       })
+
+      Promise.all(promises).then(() => {
+        console.timeEnd(logId);
+      }).catch(error => {
+        console.error(error);
+        console.timeEnd(logId);
+      })
     }
 
-    console.timeEnd(logId);
     res.status(200).send({});
   } else {
     res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: no id in body' }));
