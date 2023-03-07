@@ -139,13 +139,13 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
           'description': prompt || '',
           'blueprint_id': blueprintId,
           'print_provider_id': providerId,
-          // 'variants': filteredVariants.map((variant) => {
-          //     return {
-          //         id: variant.id,
-          //         price: T_SHIRT_PRICE,
-          //         is_enabled: true
-          //     };
-          // }),
+          'variants': filteredVariants.map((variant) => {
+              return {
+                  id: variant.id,
+                  price: T_SHIRT_PRICE,
+                  is_enabled: false
+              };
+          }),
           'print_areas': [
             {
               'variant_ids': filteredVariants.map((variant) => variant.id),
