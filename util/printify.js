@@ -102,83 +102,90 @@ export const getProviderVariants = async (blueprint, provider) => {
 };
 
 export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, number) => {
-    const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
-    const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
-    
-    console.log('shops', shops);
-    console.log('shopId', shopId);
-    console.log('blueprintId', blueprintId);
+  console.time('generateTShirtProduct');
+  const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
+  const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
+  
+  console.log('shops', shops);
+  console.log('shopId', shopId);
+  console.log('blueprintId', blueprintId);
 
-    const providers = await getPrintProviders(blueprintId);
-    const providerId = providers.filter((provider) => provider.title === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
+  const providers = await getPrintProviders(blueprintId);
+  console.timeLog('generateTShirtProduct', 'getPrintProviders');
 
-    const variants = await getProviderVariants(blueprintId, providerId);
-    const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
-    const headers = new Headers();
-    const userPrompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
+  const providerId = providers.filter((provider) => provider.title === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
 
-    console.log('filteredVariants', filteredVariants.length, filteredVariants);
-    
-    headers.append('Authorization', `Bearer ${apiKey}`);
-    headers.append('Content-Type', 'application/json');
+  const variants = await getProviderVariants(blueprintId, providerId);
+  console.timeLog('generateTShirtProduct', 'getProviderVariants');
+  const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
+  const headers = new Headers();
+  const userPrompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
 
-    const requestOptions = {
-        method: 'POST',
-        headers: headers,
-        redirect: 'follow',
-        body: JSON.stringify({
-            'title': `${userPrompt} - ${number || Math.floor(Math.random() * 100)}`,
-            'description': prompt || '',
-            'blueprint_id': blueprintId,
-            'print_provider_id': providerId,
-            'variants': filteredVariants.map((variant) => {
-                return {
-                    id: variant.id,
-                    price: T_SHIRT_PRICE,
-                    is_enabled: true
-                };
-            }),
-              'print_areas': [
-                {
-                  'variant_ids': filteredVariants.map((variant) => variant.id),
-                  'placeholders': [
-                    {
-                      'position': 'front',
-                      'images': [
-                          {
-                            'id': imageId, 
-                            'x': 0.5, 
-                            'y': 0.5, 
-                            'scale': 1,
-                            'angle': 0
-                          }
-                      ]
-                    }
-                  ]
-                }
-              ]
-          })
-    };
+  console.log('filteredVariants', filteredVariants.length, filteredVariants);
+  
+  headers.append('Authorization', `Bearer ${apiKey}`);
+  headers.append('Content-Type', 'application/json');
 
-    const product = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, requestOptions);
-    const productResult = await product.json();
-
-    console.log('product', productResult);
-
-    await fetch(`https://api.printify.com/v1/shops/${shopId}/products/${productResult.id}/publish.json`, {
-        method: 'POST',
-        headers: headers,
-        redirect: 'follow',
-        body: JSON.stringify({
-            'title': true,
-            'description': true,
-            'images': false,
-            'variants': true,
-            'tags': true,
-            'keyFeatures': true,
-            'shipping_template': true
+  const requestOptions = {
+      method: 'POST',
+      headers: headers,
+      redirect: 'follow',
+      body: JSON.stringify({
+          'title': `${userPrompt} - ${number || Math.floor(Math.random() * 100)}`,
+          'description': prompt || '',
+          'blueprint_id': blueprintId,
+          'print_provider_id': providerId,
+          'variants': filteredVariants.map((variant) => {
+              return {
+                  id: variant.id,
+                  price: T_SHIRT_PRICE,
+                  is_enabled: true
+              };
+          }),
+            'print_areas': [
+              {
+                'variant_ids': filteredVariants.map((variant) => variant.id),
+                'placeholders': [
+                  {
+                    'position': 'front',
+                    'images': [
+                        {
+                          'id': imageId, 
+                          'x': 0.5, 
+                          'y': 0.5, 
+                          'scale': 1,
+                          'angle': 0
+                        }
+                    ]
+                  }
+                ]
+              }
+            ]
         })
-    });
+  };
 
-    return await productResult;
+  const product = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, requestOptions);
+  const productResult = await product.json();
+  console.timeLog('generateTShirtProduct', 'productResult');
+
+  console.log('product', productResult);
+
+  await fetch(`https://api.printify.com/v1/shops/${shopId}/products/${productResult.id}/publish.json`, {
+      method: 'POST',
+      headers: headers,
+      redirect: 'follow',
+      body: JSON.stringify({
+          'title': true,
+          'description': true,
+          'images': false,
+          'variants': true,
+          'tags': true,
+          'keyFeatures': true,
+          'shipping_template': true
+      })
+  });
+
+  console.timeEnd('generateTShirtProduct');
+
+  return productResult;
 };
