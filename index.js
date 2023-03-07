@@ -76,10 +76,6 @@ api.post('/webhook-diffusion', async (req, res) => {
   const resultImages = {};
   const unused = 1;
 
-  const query = {
-    prompt: resultImages.prompt,
-    requestId: resultImages.requestId
-  };
   const updateQuery = {};
 
   if (req.body?.id) {
@@ -91,6 +87,11 @@ api.post('/webhook-diffusion', async (req, res) => {
     resultImages.requestId = req.body.id;
     resultImages.images = {};
 
+    const query = {
+      prompt: resultImages.prompt,
+      requestId: resultImages.requestId
+    };
+    
     if (req.body.error) {
       updateQuery = {
         error: req.body.error
