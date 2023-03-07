@@ -180,7 +180,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
           'title': true,
           'description': true,
           'images': false,
-          'variants': true,
+          'variants': false,
           'tags': true,
           'keyFeatures': true,
           'shipping_template': true
