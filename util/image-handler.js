@@ -9,32 +9,39 @@ const TSHIRT_URL_PREFIX = 't-shirt-image';
 const CROP_URL_PREFIX = 'crop-image';
 
 async function resizeImage(img) {
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
-        'Content-Type': 'application/json',
+  console.time('resizeImage')
+  const response = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      version: process.env.REPLICATE_SCALE_VERSION,
+      input: { 
+          image: img,
+          scale: 3,
+          // face_enhance: true
       },
-      body: JSON.stringify({
-        version: process.env.REPLICATE_SCALE_VERSION,
-        input: { 
-            image: img,
-            scale: 3,
-            face_enhance: true
-        },
-        webhook_completed: `${HOST}/webhook-scale`
-      }),
-    });
-  
-    if (response.status !== 201) {
-      let error = await response.json();
+      webhook_completed: `${HOST}/webhook-scale`
+    }),
+  });
 
-      console.log('There is an error in resize image funciton:', error);
+  console.timeLog('resizeImage')
+  if (response.status !== 201) {
+    let error = await response.json();
 
-      return error;
-    }
-  
-    return await response.json();
+    console.log('There is an error in resize image funciton:', error);
+
+    return error;
+  }
+
+
+  const json = await response.json();
+
+  console.timeEnd('resizeImage');
+
+  return json;
 }
 async function combineTShirtImage(img, id) {
     const srcImage = await Jimp.read(img);
