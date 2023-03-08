@@ -54,8 +54,8 @@ async function combineTShirtImage(img, id) {
     const composeImageTShirt = tShirtMockup.composite(resizedSrc, (width - resizedSrc.bitmap.width) / 2, height / 4.1);
     
     /** GET IMAGES BUFFERS: */
-    const tShirtResultBuffer = await composeImageTShirt.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
-    const cropResultBuffer = await cropppedImage.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
+    const tShirtResultBuffer = composeImageTShirt.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
+    const cropResultBuffer = cropppedImage.getBufferAsync(Jimp.MIME_PNG); /** RESULT WITH T-SHIRT */
 
     write(`${TSHIRT_URL_PREFIX}-${uniqueNumber}.png`, tShirtResultBuffer);
     write(`${CROP_URL_PREFIX}-${uniqueNumber}.png`, cropResultBuffer);

@@ -74,9 +74,6 @@ api.post('/prompt', async (req, res) => {
 
 api.post('/webhook-diffusion', async (req, res) => {
   const resultImages = {};
-  const unused = 1;
-
-  const updateQuery = {};
 
   if (req.body?.id) {
     const logId = `webhook-diffusion_${req.body?.id}`;
@@ -96,30 +93,31 @@ api.post('/webhook-diffusion', async (req, res) => {
       updateQuery = {
         error: req.body.error
       }
-      await imagesCollection.updateOne(query, { $set: updateQuery }, { upsert: true });
+      await imagesCollection.updateOne(query, {
+        $set: {
+          error: req.body.error
+        }
+      }, { upsert: true });
     } else {
       const promises = req.body.output.map(async (imgUrl, i) => {
         console.timeLog(logId, i);
-        const resizeRes = await resizeImage(imgUrl);
+        const [resizeRes, combinedRes] = await Promise.all([resizeImage(imgUrl), combineTShirtImage(imgUrl, req.body.id)]) ;
 
-        console.timeLog(logId, i + '_resizeImage done');
-        const combinedRes = await combineTShirtImage(imgUrl, req.body.id);
+        console.timeLog(logId, i + '_resizeImage & _combineTShirtImage done');
         const _updateQuery = {
           [`images.${resizeRes.id}`]: combinedRes
         }
-        console.timeLog(logId, i + '_combineTShirtImage done');
 
         if (resizeRes.id) {
           combinedRes.generatedImg = imgUrl;
-          await imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true });
-          console.timeLog(logId, i + '_generatedImg saved');
+          imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
 
           const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
           console.timeLog(logId, i + '_uploadImage done');
 
           combinedRes.printifyId = uploadToPrintifyRes.id;
 
-          await imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true });
+          imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
           console.timeLog(logId, i + '_printifyId saved');
         } else {
           res.statusCode = 500;
