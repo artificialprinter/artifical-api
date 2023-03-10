@@ -122,7 +122,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     step: 1,
     images: imagesObj,
   });
-  
+
   // save immediately
   imagesCollection.updateOne(imagesQuery, {
     $set: {
@@ -136,6 +136,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i);
 
     const upscaling = upscaleImage(imgUrl).catch(console.error);
+    console.timeLog(logId, i + '_updcaling started');
 
     const sharpImage = await loadImageFromUrl(imgUrl);
 

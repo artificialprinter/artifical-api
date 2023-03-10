@@ -1,14 +1,12 @@
-import Jimp from 'jimp';
 import sharp from 'sharp';
 import { write } from './filestorage.js';
 
 const HOST = process.env.CYCLIC_URL || 'localhost';
 
-const tShirtMockupPath = './public/t-shirt-mockup.png';
-const tShirtMockup = await Jimp.read(tShirtMockupPath);
-const tShirtMockupSharp = await sharp(tShirtMockupPath);
-const tShirtMockupMetadata = await tShirtMockupSharp.metadata();
-const TSHIRT_URL_PREFIX = 't-shirt';
+// const tShirtMockupPath = './public/t-shirt-mockup.png';
+// const tShirtMockupSharp = await sharp(tShirtMockupPath);
+// const tShirtMockupMetadata = await tShirtMockupSharp.metadata();
+// const TSHIRT_URL_PREFIX = 't-shirt';
 const CROP_URL_PREFIX = 'crop';
 
 const round = (n, decimals = 0) => Number(`${Math.round(`${n}e${decimals}`)}e-${decimals}`);
