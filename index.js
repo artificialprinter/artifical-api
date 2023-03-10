@@ -11,7 +11,7 @@ import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prom
 import { combineTShirtImageV2, resizeImage } from './util/image-handler.js';
 import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
-import { read } from './util/filestorage.js';
+import { read, readStream } from './util/filestorage.js';
 
 const api = express();
 
@@ -142,7 +142,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i + '_combineTShirtImage start');
     const combinedRes = await combineTShirtImageV2(imgUrl, req.body.id);
     console.timeLog(logId, i + '_combineTShirtImage done');
-    
+
     combinedRes.generatedImg = imgUrl;
     pusher.trigger('my-channel', 'my-event', {
       id,
@@ -293,6 +293,26 @@ api.get('/images/:image', async (req, res) => {
         res.send(fileResult).end();
       }
     }
+});
+
+api.get('/images/v2/:image', async (req, res) => {
+  const { image } = req.params;
+
+  if (!image) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ detail: 'No image name provided!' }));
+  } else {
+    const fileResult = readStream(image);
+
+    if (fileResult.error) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ detail: fileResult.error }));
+    } else {
+      res.statusCode = 200;
+      res.set('Content-type', 'image/png');
+      res.write(fileResult);
+    }
+  }
 });
 
 api.post('/printify-product', async (req, res) => {

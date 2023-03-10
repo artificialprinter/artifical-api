@@ -26,3 +26,14 @@ export const read = async (filename) => {
         return { error };
       }
 };
+
+export const readStream = async (filename) => {
+  try {
+    return storage.getObject({
+      Bucket: process.env.CYCLIC_BUCKET_NAME,
+      Key: filename,
+    }).stream();
+  } catch (error) {
+    return { error };
+  }
+};
