@@ -7,7 +7,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
-import { loadImageFromUrl, cropImage, upscaleImage } from './util/image-handler.js';
+import { loadImageFromUrl, cropImageJimp, upscaleImage, cropImageSharp } from './util/image-handler.js';
 import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
 import { write, read, readStream } from './util/filestorage.js';
@@ -136,13 +136,14 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i);
 
     const upscaling = upscaleImage(imgUrl).catch(console.error);
-    console.timeLog(logId, i + '_upscaling started');
-
-    const sharpImage = await loadImageFromUrl(imgUrl);
 
     console.timeLog(logId, i + '_crop waiting...');
-    const croppedImg = await cropImage(sharpImage, requestId);
-    console.timeLog(logId, i + '_crop done');
+    const croppedImg = await Promise.race([
+      cropImageJimp(imgUrl, requestId),
+      loadImageFromUrl(imgUrl).then(sharpImage => cropImageSharp(sharpImage, requestId)),
+    ]);
+
+    console.timeLog(logId, i + '_crop done, winner ' + croppedImg.lib);
     await write(croppedImg.name, croppedImg.buffer);
     console.timeLog(logId, i + '_crop write done');
 
