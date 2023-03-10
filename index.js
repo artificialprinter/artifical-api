@@ -271,7 +271,7 @@ api.get('/prompt', async (req, res) => {
   res.end(JSON.stringify(prediction));
 });
 
-api.get('/images/:image', async (req, res) => {
+api.get('/images/v0/:image', async (req, res) => {
     const { image } = req.params;
 
     if (!image) {
@@ -291,7 +291,7 @@ api.get('/images/:image', async (req, res) => {
     }
 });
 
-api.get('/images/v2/:image', async (req, res) => {
+api.get('/images/:image', async (req, res) => {
   const { image } = req.params;
 
   if (!image) {
