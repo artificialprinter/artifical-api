@@ -113,7 +113,7 @@ export async function combineTShirtImageV2(imgUrl, id) {
 export async function cropImageJimp(imgUrl, id) {
   const srcImage = await Jimp.read(imgUrl);
   const uniqueNumber = `${getRndKey()}-${id}`;
-  const croppedImageBuffer = srcImage
+  const croppedImageBuffer = await srcImage
     .resize(srcImage.bitmap.width / 1.12, srcImage.bitmap.height, Jimp.RESIZE_BILINEAR)
     .getBufferAsync(Jimp.MIME_PNG);
 
