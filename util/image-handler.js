@@ -134,7 +134,7 @@ export async function loadImageFromUrl(imgUrl) {
   for await (const chunk of res.body) {
     chunks.push(chunk);
   }
-  return sharp(Buffer.concat(chunks));
+  return Buffer.concat(chunks);
 }
 
 export async function cropImageSharp(sharpImg, id) {
