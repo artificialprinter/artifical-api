@@ -136,7 +136,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i);
 
     const upscaling = upscaleImage(imgUrl).catch(console.error);
-    console.timeLog(logId, i + '_updcaling started');
+    console.timeLog(logId, i + '_upscaling started');
 
     const sharpImage = await loadImageFromUrl(imgUrl);
 
