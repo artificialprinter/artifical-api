@@ -302,7 +302,7 @@ api.get('/images/v2/:image', async (req, res) => {
     res.statusCode = 500;
     res.end(JSON.stringify({ detail: 'No image name provided!' }));
   } else {
-    const fileResult = readStream(image);
+    const fileResult = await readStream(image);
 
     if (fileResult.error) {
       res.statusCode = 500;
