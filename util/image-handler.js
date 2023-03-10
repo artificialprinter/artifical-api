@@ -14,7 +14,7 @@ const CROP_URL_PREFIX = 'crop';
 const round = (n, decimals = 0) => Number(`${Math.round(`${n}e${decimals}`)}e-${decimals}`);
 
 export async function upscaleImage(img) {
-  const label = 'upscalingImage' + img.slice(-5);
+  const label = 'upscaling process' + img.slice(-5);
   console.time(label);
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
@@ -33,7 +33,7 @@ export async function upscaleImage(img) {
     }),
   });
 
-  console.timeLog(label);
+  console.timeLog(label, 'response');
   if (response.status !== 201) {
     let error = await response.json();
 

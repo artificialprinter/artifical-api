@@ -117,17 +117,18 @@ api.post('/webhook-diffusion', async (req, res) => {
     return obj;
   }, {});
 
-  // save immediately
-  await imagesCollection.updateOne(imagesQuery, {
-    $set: {
-      images: imagesObj
-    }
-  }, { upsert: true });
 
   pusher.trigger(requestId, '1', {
     step: 1,
     images: imagesObj,
   });
+  
+  // save immediately
+  imagesCollection.updateOne(imagesQuery, {
+    $set: {
+      images: imagesObj
+    }
+  }, { upsert: true }).catch(console.error);
 
   // parallel 2 images
   const promises = req.body.output.map(async (imgUrl, i) => {
