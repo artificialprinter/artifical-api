@@ -86,7 +86,7 @@ export const getPrintProviders = async (blueprint) => {
     
   const providers = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers.json`, requestOptions);
 
-  providersCache[blueprint] = await providers.json()
+  providersCache[blueprint] = await providers.json();
 
   return providersCache[blueprint];
 };

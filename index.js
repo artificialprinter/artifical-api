@@ -5,14 +5,34 @@ dotenv.config();
 
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import { setTimeout } from 'node:timers/promises';
 
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
-import { combineTShirtImage, resizeImage } from './util/image-handler.js';
+import { combineTShirtImageV2, resizeImage } from './util/image-handler.js';
 import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
 import { read } from './util/filestorage.js';
 
 const api = express();
+
+import Pusher from 'pusher';
+
+const pusher = new Pusher({
+  appId: '1565571',
+  key: 'de22d0c16c3acf27abc0',
+  secret: 'df9fabf4bffb6e0ca242',
+  cluster: 'eu',
+  useTLS: true
+});
+
+pusher.trigger('my-channel', 'my-event', {
+  message: {
+    text: 'started',
+    versions: process.versions,
+    time: new Date().toISOString(),
+  },
+  foo: 'bar'
+});
 
 api.use('/favicon.ico', express.static('./public/favicon.ico'));
 api.use(cors());
@@ -73,84 +93,111 @@ api.post('/prompt', async (req, res) => {
 });
 
 api.post('/webhook-diffusion', async (req, res) => {
-  const resultImages = {};
+  if (!req.body?.id) {
+    return res.end({ detail: 'There is an error in Diffusion Resize: no id in body' });
+  }
 
-  if (req.body?.id) {
-    const logId = `webhook-diffusion_${req.body?.id}`;
-
-    console.time(logId);
-
-    resultImages.prompt = req.body.input.prompt;
-    resultImages.requestId = req.body.id;
-    resultImages.images = {};
-
-    const query = {
-      prompt: resultImages.prompt,
-      requestId: resultImages.requestId
-    };
-
-    if (req.body.error) {
-      updateQuery = {
-        error: req.body.error
-      }
-      await imagesCollection.updateOne(query, {
+  if (req.body.error) {
+    imagesCollection
+      .updateOne(query, {
         $set: {
           error: req.body.error
         }
-      }, { upsert: true });
-    } else {
-      const promises = req.body.output.map(async (imgUrl, i) => {
-        console.timeLog(logId, i);
-        const [resizeRes, combinedRes] = await Promise.all([resizeImage(imgUrl), combineTShirtImage(imgUrl, req.body.id)]) ;
-
-        console.timeLog(logId, i + '_resizeImage & _combineTShirtImage done');
-        const _updateQuery = {
-          [`images.${resizeRes.id}`]: combinedRes
-        }
-
-        if (resizeRes.id) {
-          combinedRes.generatedImg = imgUrl;
-          imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
-
-          const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeRes.id}.png`, combinedRes.croppedImg || imgUrl);
-          console.timeLog(logId, i + '_uploadImage done');
-
-          combinedRes.printifyId = uploadToPrintifyRes.id;
-
-          imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
-          console.timeLog(logId, i + '_printifyId saved');
-        } else {
-          res.statusCode = 500;
-          res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: output is empty. Images did not generated' }));
-
-          return;
-        }
-      })
-
-      Promise.all(promises).then(() => {
-        console.timeEnd(logId);
-      }).catch(error => {
-        console.error(error);
-        console.timeEnd(logId);
-      })
-    }
-
-    res.status(200).send({});
-  } else {
-    res.end(JSON.stringify({ detail: 'There is an error in Diffusion Resize: no id in body' }));
+        }, { upsert: true })
+      .catch(console.error);
+    
+    return res.end({ detail: 'There is an error in Diffusion Resize: ' + req.body.error });
   }
+
+  const resultImages = {};
+  const logId = `webhook-diffusion_${req.body?.id}`;
+
+  console.time(logId);
+
+  resultImages.prompt = req.body.input.prompt;
+  resultImages.requestId = req.body.id;
+  resultImages.images = {};
+
+  const query = {
+    prompt: resultImages.prompt,
+    requestId: resultImages.requestId
+  };
+
+  pusher.trigger('my-channel', 'my-event', {
+    images: req.body.output,
+  });
+
+  // parallel 2 images
+  const promises = req.body.output.map(async (imgUrl, i) => {
+    const id = imgUrl.split('/').at(-2);
+    // save immediately
+    await setTimeout(i * 100);
+    imagesCollection.updateOne(query, { $set: {
+      [`images.${id}.generatedImg`]: imgUrl
+    } }, { upsert: true }).catch(console.error);
+
+    console.timeLog(logId, i);
+
+    const upscaling = resizeImage(imgUrl).catch(console.error);
+    const combining = combineTShirtImageV2(imgUrl, req.body.id);
+    const combinedRes = await combining;
+    combinedRes.generatedImg = imgUrl;
+
+    pusher.trigger('my-channel', 'my-event', {
+      id,
+      combinedRes,
+    });
+    const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, combinedRes.croppedImg || imgUrl);
+    const _updateQuery = {
+      [`images.${id}`]: combinedRes
+    };
+
+    console.timeLog(logId, i + '_combineTShirtImage done');
+    imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
+
+    const uploadToPrintifyRes = await uploading;
+    console.timeLog(logId, i + '_uploadImage done');
+
+    pusher.trigger('my-channel', 'my-event', {
+      id,
+      printifyId: uploadToPrintifyRes.id,
+    });
+    imagesCollection.updateOne(query, {
+      $set: {
+        [`images.${id}.printifyId`]: uploadToPrintifyRes.id
+      }
+    }, { upsert: true }).catch(console.error);
+    
+    await upscaling;
+    console.timeLog(logId, i + '_upscaling done');
+  });
+
+  Promise.all(promises).then(() => {
+    console.timeEnd(logId);
+  }).catch(error => {
+    console.error(error);
+    console.timeEnd(logId);
+  });
+
+  res.status(200).send({});
 });
 
 api.post('/webhook-scale', async (req, res) => {
   if (req.body?.output) {
-    const resizeId = req.body.id;
-    const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${resizeId}.png`, req.body.output);
+    const id = req.body.input?.image.split('/').at(-2) || req.body.id;
+    const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${id}.png`, req.body.output);
+
+    pusher.trigger('my-channel', 'my-event', {
+      id,
+      printifyId: uploadToPrintifyRes.id,
+    });
+    
     const updateResult = await imagesCollection.updateOne(
       {
-        [`images.${resizeId}`]: { $exists: true }
+        [`images.${id}`]: { $exists: true }
       },
       { 
-        $set: { [`images.${resizeId}.imageFull`]: req.body.output, [`images.${resizeId}.printifyId`]: uploadToPrintifyRes.id }
+        $set: { [`images.${id}.imageFull`]: req.body.output, [`images.${id}.printifyId`]: uploadToPrintifyRes.id }
       }
     );
 
