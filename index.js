@@ -138,7 +138,6 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i);
 
     await setTimeout(i * 100);
-    const upscaling = upscaleImage(imgUrl).catch(console.error);
     console.timeLog(logId, i + '_upscaling started');
 
     const bufferImage = await loadImageFromUrl(imgUrl);
@@ -163,7 +162,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     imagesCollection.updateOne(imagesQuery, { $set: _updateQuery }, { upsert: true }).catch(console.error);
 
     const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, croppedImg.url);
-
+    const upscaling = upscaleImage(imgUrl).catch(console.error);
     console.timeLog(logId, i + '_uploadImage waiting...');
     const uploadToPrintifyRes = await uploading;
     console.timeLog(logId, i + '_uploadImage done');
@@ -275,6 +274,7 @@ api.get('/prompt', async (req, res) => {
 });
 
 async function sendImage(image, res) {
+  console.log('buffer fallback :>> ', image);
   const fileResult = await read(image);
 
   if (fileResult.error) {
@@ -298,9 +298,8 @@ async function sendImageStream(image, res) {
         res.end(JSON.stringify({ detail: fileResult.error }));
         return;
       }
-      Math.random() > 0.80 && console.log('images headers :>> ', headers);
       res.set('Content-Length', headers['content-length']);
-      res.set('Cache-Control', 'max-age=86868');
+      res.set('Cache-Control', 'max-age=31536000'); // 1 year
       res.set('Content-Type', headers['content-type'] || 'image/png');
       this.response.httpResponse
         .createUnbufferedStream()
