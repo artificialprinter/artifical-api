@@ -25,15 +25,6 @@ const pusher = new Pusher({
   useTLS: true
 });
 
-pusher.trigger('my-channel', 'my-event', {
-  message: {
-    text: 'started',
-    versions: process.versions,
-    time: new Date().toISOString(),
-  },
-  foo: 'bar'
-});
-
 api.use('/favicon.ico', express.static('./public/favicon.ico'));
 api.use(cors());
 api.use(bodyParser.json());
@@ -94,8 +85,9 @@ api.post('/prompt', async (req, res) => {
 
 api.post('/webhook-diffusion', async (req, res) => {
   if (!req.body?.id) {
-    return res.end({ detail: 'There is an error in Diffusion Resize: no id in body' });
+    return res.end({ detail: 'There is an error in Diffusion: no id in body' });
   }
+  const { id } = req.body; 
 
   if (req.body.error) {
     imagesCollection
@@ -106,7 +98,7 @@ api.post('/webhook-diffusion', async (req, res) => {
         }, { upsert: true })
       .catch(console.error);
     
-    return res.end({ detail: 'There is an error in Diffusion Resize: ' + req.body.error });
+    return res.end({ detail: 'There is an error in Diffusion: ' + req.body.error });
   }
 
   const resultImages = {};
@@ -123,8 +115,12 @@ api.post('/webhook-diffusion', async (req, res) => {
     requestId: resultImages.requestId
   };
 
-  pusher.trigger('my-channel', 'my-event', {
+  pusher.trigger(id, '1', {
+    step: 1,
     images: req.body.output,
+    [id]: {
+      generatedImg: req.body.output
+    }
   });
 
   // parallel 2 images
@@ -144,9 +140,10 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i + '_combineTShirtImage done');
 
     combinedRes.generatedImg = imgUrl;
-    pusher.trigger('my-channel', 'my-event', {
-      id,
-      combinedRes,
+    pusher.trigger(id, '1', {
+      step: 2,
+      i,
+      [id]: combinedRes
     });
     const _updateQuery = {
       [`images.${id}`]: combinedRes
@@ -160,9 +157,13 @@ api.post('/webhook-diffusion', async (req, res) => {
     const uploadToPrintifyRes = await uploading;
     console.timeLog(logId, i + '_uploadImage done');
 
-    pusher.trigger('my-channel', 'my-event', {
+    pusher.trigger(id, '1', {
       id,
-      printifyId: uploadToPrintifyRes.id,
+      step: 3,
+      i,
+      [id]: {
+        printifyId: uploadToPrintifyRes.id
+      }
     });
     imagesCollection.updateOne(query, {
       $set: {
@@ -188,11 +189,6 @@ api.post('/webhook-scale', async (req, res) => {
   if (req.body?.output) {
     const id = req.body.input?.image.split('/').at(-2) || req.body.id;
     const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${id}.png`, req.body.output);
-
-    pusher.trigger('my-channel', 'my-event', {
-      id,
-      printifyId: uploadToPrintifyRes.id,
-    });
 
     const updateResult = await imagesCollection.updateOne(
       {
