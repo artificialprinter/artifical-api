@@ -8,13 +8,13 @@ const tShirtMockupPath = './public/t-shirt-mockup.png';
 const tShirtMockup = await Jimp.read(tShirtMockupPath);
 const tShirtMockupSharp = await sharp(tShirtMockupPath);
 const tShirtMockupMetadata = await tShirtMockupSharp.metadata();
-const TSHIRT_URL_PREFIX = 't-shirt-image';
-const CROP_URL_PREFIX = 'crop-image';
+const TSHIRT_URL_PREFIX = 't-shirt';
+const CROP_URL_PREFIX = 'crop';
 
 const round = (n, decimals = 0) => Number(`${Math.round(`${n}e${decimals}`)}e-${decimals}`);
 
-async function resizeImage(img) {
-  const label = 'resizeImage' + img.slice(-5);
+export async function upscaleImage(img) {
+  const label = 'upscalingImage' + img.slice(-5);
   console.time(label);
   const response = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
@@ -38,10 +38,10 @@ async function resizeImage(img) {
     let error = await response.json();
 
     console.log('There is an error in resize image funciton:', error);
-
+    console.timeEnd(label);
+    
     return error;
   }
-
 
   const json = await response.json();
 
@@ -50,11 +50,14 @@ async function resizeImage(img) {
   return json;
 }
 
-async function combineTShirtImage(imgUrl, id) {
+const getRndKey = () => Math.random().toString(36).slice(2);
+
+// deprecated
+export async function combineTShirtImage(imgUrl, id) {
   const srcImage = await Jimp.read(imgUrl);
   const srcImageToCrop = srcImage.clone();
   const { width, height } = tShirtMockup.bitmap;
-  const uniqueNumber = `${Math.random().toString(36).slice(2)}-${id}`;
+  const uniqueNumber = `${getRndKey()}-${id}`;
 
   const cropppedImage = srcImageToCrop.resize(srcImageToCrop.bitmap.width / 1.12, srcImage.bitmap.height, Jimp.RESIZE_BILINEAR);
   const resizedSrc = srcImage.resize(srcImage.bitmap.width / 1.4, Jimp.AUTO, Jimp.RESIZE_BILINEAR);
@@ -73,8 +76,8 @@ async function combineTShirtImage(imgUrl, id) {
   };
 }
 
-// use faster sharp lib
-async function combineTShirtImageV2(imgUrl, id) {
+// use faster sharp lib, aslo deprecated. better to use separate functions
+export async function combineTShirtImageV2(imgUrl, id) {
   const res = await fetch(imgUrl);
   const chunks = [];
   for await (const chunk of res.body) {
@@ -110,8 +113,28 @@ async function combineTShirtImageV2(imgUrl, id) {
   };
 }
 
-export {
-  combineTShirtImage,
-  combineTShirtImageV2,
-  resizeImage
-};
+export async function loadImageFromUrl(imgUrl) {
+  const res = await fetch(imgUrl);
+  const chunks = [];
+  for await (const chunk of res.body) {
+    chunks.push(chunk);
+  }
+  return sharp(Buffer.concat(chunks));
+}
+
+export async function cropImage(sharpImg, id) {
+  const sharpImgMeta = await sharpImg.metadata();
+  const uniqueNumber = `${getRndKey()}-${id}`;
+
+  const croppedImageBuffer = await sharpImg
+    .resize(round(sharpImgMeta.width / 1.12), sharpImgMeta.height)
+    .toBuffer(); /** RESULT WITH T-SHIRT */
+
+  const name = `${CROP_URL_PREFIX}-${uniqueNumber}.png`;
+
+  return {
+    name,
+    url: `${HOST}/images/${name}`,
+    buffer: croppedImageBuffer
+  };
+}

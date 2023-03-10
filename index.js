@@ -5,13 +5,12 @@ dotenv.config();
 
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { setTimeout } from 'node:timers/promises';
 
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
-import { combineTShirtImageV2, resizeImage } from './util/image-handler.js';
+import { loadImageFromUrl, cropImage, upscaleImage } from './util/image-handler.js';
 import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
-import { read, readStream } from './util/filestorage.js';
+import { write, read, readStream } from './util/filestorage.js';
 
 const api = express();
 
@@ -87,11 +86,10 @@ api.post('/webhook-diffusion', async (req, res) => {
   if (!req.body?.id) {
     return res.end({ detail: 'There is an error in Diffusion: no id in body' });
   }
-  const { id } = req.body; 
 
   if (req.body.error) {
     imagesCollection
-      .updateOne(query, {
+      .updateOne(imagesQuery, {
         $set: {
           error: req.body.error
         }
@@ -100,72 +98,69 @@ api.post('/webhook-diffusion', async (req, res) => {
     
     return res.end({ detail: 'There is an error in Diffusion: ' + req.body.error });
   }
-
-  const resultImages = {};
-  const logId = `webhook-diffusion_${req.body?.id}`;
+  
+  const { id: requestId, input: { prompt } } = req.body; 
+  const logId = `webhook-diffusion_${requestId}`;
 
   console.time(logId);
 
-  resultImages.prompt = req.body.input.prompt;
-  resultImages.requestId = req.body.id;
-  resultImages.images = {};
-
-  const query = {
-    prompt: resultImages.prompt,
-    requestId: resultImages.requestId
+  const imagesQuery = {
+    prompt,
+    requestId
   };
 
-  pusher.trigger(id, '1', {
-    step: 1,
-    images: req.body.output,
-    [id]: {
-      generatedImg: req.body.output
+  const imagesObj = req.body.output.reduce((obj, url) => {
+    obj[url.split('/').at(-2)] = {
+      generatedImg: url
+    };
+
+    return obj;
+  }, {});
+
+  // save immediately
+  await imagesCollection.updateOne(imagesQuery, {
+    $set: {
+      images: imagesObj
     }
+  }, { upsert: true });
+
+  pusher.trigger(requestId, '1', {
+    step: 1,
+    images: imagesObj,
   });
 
   // parallel 2 images
   const promises = req.body.output.map(async (imgUrl, i) => {
     const id = imgUrl.split('/').at(-2);
-    // save immediately
-    await setTimeout(i * 100);
     console.timeLog(logId, i);
-    imagesCollection.updateOne(query, { $set: {
-      [`images.${id}.generatedImg`]: imgUrl
-    } }, { upsert: true }).catch(console.error);
 
-    const upscaling = resizeImage(imgUrl).catch(console.error);
+    const upscaling = upscaleImage(imgUrl).catch(console.error);
 
-    console.timeLog(logId, i + '_combineTShirtImage start');
-    const combinedRes = await combineTShirtImageV2(imgUrl, req.body.id);
-    console.timeLog(logId, i + '_combineTShirtImage done');
+    const sharpImage = await loadImageFromUrl(imgUrl);
 
-    combinedRes.generatedImg = imgUrl;
-    pusher.trigger(id, '1', {
+    console.timeLog(logId, i + '_crop waiting...');
+    const croppedImg = await cropImage(sharpImage, requestId);
+    console.timeLog(logId, i + '_crop done');
+    await write(croppedImg.name, croppedImg.buffer);
+    console.timeLog(logId, i + '_crop write done');
+
+    imagesObj[id].generatedImg = croppedImg.url;
+    pusher.trigger(requestId, '1', {
       step: 2,
-      i,
-      [id]: combinedRes
+      images: imagesObj
     });
     const _updateQuery = {
-      [`images.${id}`]: combinedRes
+      [`images.${id}.generatedImg`]: croppedImg.url
     };
-    imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
+    imagesCollection.updateOne(imagesQuery, { $set: _updateQuery }, { upsert: true }).catch(console.error);
 
-    const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, combinedRes.croppedImg || imgUrl);
+    const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, croppedImg.url);
 
-    console.timeLog(logId, i + '_combineTShirtImage done 2');
-
+    console.timeLog(logId, i + '_uploadImage waiting...');
     const uploadToPrintifyRes = await uploading;
     console.timeLog(logId, i + '_uploadImage done');
 
-    pusher.trigger(id, '1', {
-      id,
-      step: 3,
-      i,
-      [id]: {
-        printifyId: uploadToPrintifyRes.id
-      }
-    });
-    imagesCollection.updateOne(query, {
+    imagesCollection.updateOne(imagesQuery, {
       $set: {
         [`images.${id}.printifyId`]: uploadToPrintifyRes.id
       }
@@ -271,6 +266,51 @@ api.get('/prompt', async (req, res) => {
   res.end(JSON.stringify(prediction));
 });
 
+async function sendImage(image, res) {
+  const fileResult = await read(image);
+
+  if (fileResult.error) {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ detail: fileResult.error }));
+  } else {
+    res.statusCode = 200;
+    res.set('Content-type', 'image/png');
+    res.send(fileResult).end();
+  }
+}
+
+async function sendImageStream(image, res) {
+  const fileResult = readStream(image);
+
+  fileResult
+    .on('httpHeaders', function (statusCode, headers) {
+      if (statusCode !== 200) {
+        console.error('cant get', image);
+        res.statusCode = 500;
+        res.end(JSON.stringify({ detail: fileResult.error }));
+        return;
+      }
+      Math.random() > 0.80 && console.log('images headers :>> ', headers);
+      res.set('Content-Length', headers['content-length']);
+      res.set('Cache-Control', 'max-age=86868');
+      res.set('Content-Type', headers['content-type'] || 'image/png');
+      this.response.httpResponse
+        .createUnbufferedStream()
+        .pipe(res);
+    })
+    .on('error', async (error) => {
+      console.error('readStream', error);
+
+      return sendImage(image, res);
+    })
+    .send();
+
+  if (fileResult.error) {
+    return sendImage(image, res);
+  }
+}
+
+// use buffer - full load and resend image
 api.get('/images/v0/:image', async (req, res) => {
     const { image } = req.params;
 
@@ -278,19 +318,11 @@ api.get('/images/v0/:image', async (req, res) => {
       res.statusCode = 500;
       res.end(JSON.stringify({ detail: 'No image name provided!' }));
     } else {
-      const fileResult = await read(image);
-
-      if (fileResult.error) {
-        res.statusCode = 500;
-        res.end(JSON.stringify({ detail: fileResult.error }));
-      } else {
-        res.statusCode = 200;
-        res.set('Content-type', 'image/png');
-        res.send(fileResult).end();
-      }
+      return sendImage(image, res);
     }
 });
 
+// use stream - piping img from s3 to response
 api.get('/images/:image', async (req, res) => {
   const { image } = req.params;
 
@@ -298,25 +330,11 @@ api.get('/images/:image', async (req, res) => {
     res.statusCode = 500;
     res.end(JSON.stringify({ detail: 'No image name provided!' }));
   } else {
-    const fileResult = await readStream(image);
-
-    fileResult.on('httpHeaders', function (statusCode, headers) {
-      if (statusCode !== 200) {
-        console.error('cant get', image);
-        res.statusCode = 500;
-        res.end(JSON.stringify({ detail: fileResult.error }));
-        return;
-      }
-      res.set('Content-Length', headers['content-length']);
-      res.set('Content-Type', headers['content-type'] || 'image/png');
-      this.response.httpResponse.createUnbufferedStream()
-          .pipe(res);
-    })
-    .send();
-
-    if (fileResult.error) {
-      res.statusCode = 500;
-      res.end(JSON.stringify({ detail: fileResult.error }));
+    try {
+      return sendImageStream(image, res);
+    } catch (e) {
+      console.error(e);
+      return sendImage(image, res);
     }
   }
 });
