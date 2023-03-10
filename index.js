@@ -300,13 +300,23 @@ api.get('/images/v2/:image', async (req, res) => {
   } else {
     const fileResult = await readStream(image);
 
+    fileResult.on('httpHeaders', function (statusCode, headers) {
+      if (statusCode !== 200) {
+        console.error('cant get', image);
+        res.statusCode = 500;
+        res.end(JSON.stringify({ detail: fileResult.error }));
+        return;
+      }
+      res.set('Content-Length', headers['content-length']);
+      res.set('Content-Type', headers['content-type'] || 'image/png');
+      this.response.httpResponse.createUnbufferedStream()
+          .pipe(res);
+    })
+    .send();
+
     if (fileResult.error) {
       res.statusCode = 500;
       res.end(JSON.stringify({ detail: fileResult.error }));
-    } else {
-      res.statusCode = 200;
-      res.set('Content-type', 'image/png');
-      res.write(fileResult);
     }
   }
 });

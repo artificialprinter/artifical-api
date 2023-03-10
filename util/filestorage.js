@@ -32,7 +32,7 @@ export const readStream = async (filename) => {
     return storage.getObject({
       Bucket: process.env.CYCLIC_BUCKET_NAME,
       Key: filename,
-    }).createReadStream();
+    });
   } catch (error) {
     return { error };
   }
