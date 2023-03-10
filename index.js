@@ -1,6 +1,6 @@
 import express from 'express';
 import * as dotenv from 'dotenv';
-import setTimeout from 'node:timers/promises';
+import {setTimeout} from 'node:timers/promises';
 
 dotenv.config();
 
