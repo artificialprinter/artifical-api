@@ -132,28 +132,30 @@ api.post('/webhook-diffusion', async (req, res) => {
     const id = imgUrl.split('/').at(-2);
     // save immediately
     await setTimeout(i * 100);
+    console.timeLog(logId, i);
     imagesCollection.updateOne(query, { $set: {
       [`images.${id}.generatedImg`]: imgUrl
     } }, { upsert: true }).catch(console.error);
 
-    console.timeLog(logId, i);
-
     const upscaling = resizeImage(imgUrl).catch(console.error);
-    const combining = combineTShirtImageV2(imgUrl, req.body.id);
-    const combinedRes = await combining;
-    combinedRes.generatedImg = imgUrl;
 
+    console.timeLog(logId, i + '_combineTShirtImage start');
+    const combinedRes = await combineTShirtImageV2(imgUrl, req.body.id);
+    console.timeLog(logId, i + '_combineTShirtImage done');
+    
+    combinedRes.generatedImg = imgUrl;
     pusher.trigger('my-channel', 'my-event', {
       id,
       combinedRes,
     });
-    const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, combinedRes.croppedImg || imgUrl);
     const _updateQuery = {
       [`images.${id}`]: combinedRes
     };
-
-    console.timeLog(logId, i + '_combineTShirtImage done');
     imagesCollection.updateOne(query, { $set: _updateQuery }, { upsert: true }).catch(console.error);
+
+    const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, combinedRes.croppedImg || imgUrl);
+
+    console.timeLog(logId, i + '_combineTShirtImage done 2');
 
     const uploadToPrintifyRes = await uploading;
     console.timeLog(logId, i + '_uploadImage done');
@@ -191,7 +193,7 @@ api.post('/webhook-scale', async (req, res) => {
       id,
       printifyId: uploadToPrintifyRes.id,
     });
-    
+
     const updateResult = await imagesCollection.updateOne(
       {
         [`images.${id}`]: { $exists: true }
