@@ -1,5 +1,6 @@
 import express from 'express';
 import * as dotenv from 'dotenv';
+import setTimeout from 'node:timers/promises';
 
 dotenv.config();
 
@@ -136,6 +137,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     const id = imgUrl.split('/').at(-2);
     console.timeLog(logId, i);
 
+    await setTimeout(i * 100);
     const upscaling = upscaleImage(imgUrl).catch(console.error);
     console.timeLog(logId, i + '_upscaling started');
 
