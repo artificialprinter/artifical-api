@@ -16,25 +16,21 @@ const api = express();
 import Pusher from 'pusher';
 
 let pusher = {
-  events: [],
-  trigger(...args) {
-    this.events.push(args);
+  instance: null,
+  get lazyInstance() {
+    if (!pusher.instance) {
+      pusher.instance = new Pusher({
+        appId: '1565571',
+        key: 'de22d0c16c3acf27abc0',
+        secret: 'df9fabf4bffb6e0ca242',
+        cluster: 'eu',
+        useTLS: true
+      });
+    }
+
+    return pusher.instance;
   }
-}; 
-
-setTimeout(99).then(() => {
-  const _pusher = pusher;
-
-  pusher = new Pusher({
-    appId: '1565571',
-    key: 'de22d0c16c3acf27abc0',
-    secret: 'df9fabf4bffb6e0ca242',
-    cluster: 'eu',
-    useTLS: true
-  });
-
-  _pusher.events.forEach(event => pusher.trigger(...event));
-});
+};
 
 api.use('/favicon.ico', express.static('./public/favicon.ico', {
   maxAge: 1000 * 60 * 60 * 8, // 8h
@@ -134,7 +130,7 @@ api.post('/webhook-diffusion', async (req, res) => {
   }, {});
 
 
-  pusher.trigger(requestId, '1', {
+  pusher.lazyInstance.trigger(requestId, '1', {
     step: 1,
     images: imagesObj,
   });
@@ -167,7 +163,7 @@ api.post('/webhook-diffusion', async (req, res) => {
     console.timeLog(logId, i + '_crop write done');
 
     imagesObj[id].generatedImg = croppedImg.url;
-    pusher.trigger(requestId, '1', {
+    pusher.lazyInstance.trigger(requestId, '1', {
       step: 2,
       images: imagesObj
     });
@@ -225,7 +221,7 @@ api.post('/webhook-scale', async (req, res) => {
         }
       }
     );
-    pusher.trigger(requestId, '1', {
+    pusher.lazyInstance.trigger(requestId, '1', {
       step: 3,
       images: {
         [id]: {
