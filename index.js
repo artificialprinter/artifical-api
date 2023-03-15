@@ -9,18 +9,31 @@ import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './u
 import { imagesCollection } from './util/db.js';
 import { loadImageFromUrl, cropImageSharp, cropImageJimp, upscaleImage } from './util/image-handler.js';
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
-import { write, read, readStream } from './util/filestorage.js';
+import { write, read, readStream, remove } from './util/filestorage.js';
 
 const api = express();
 
 import Pusher from 'pusher';
 
-const pusher = new Pusher({
-  appId: '1565571',
-  key: 'de22d0c16c3acf27abc0',
-  secret: 'df9fabf4bffb6e0ca242',
-  cluster: 'eu',
-  useTLS: true
+let pusher = {
+  events: [],
+  trigger(...args) {
+    this.events.push(args);
+  }
+}; 
+
+setTimeout(99).then(() => {
+  const _pusher = pusher;
+
+  pusher = new Pusher({
+    appId: '1565571',
+    key: 'de22d0c16c3acf27abc0',
+    secret: 'df9fabf4bffb6e0ca242',
+    cluster: 'eu',
+    useTLS: true
+  });
+
+  _pusher.events.forEach(event => pusher.trigger(...event));
 });
 
 api.use('/favicon.ico', express.static('./public/favicon.ico', {
@@ -163,17 +176,17 @@ api.post('/webhook-diffusion', async (req, res) => {
     };
     imagesCollection.updateOne(imagesQuery, { $set: _updateQuery }, { upsert: true }).catch(console.error);
 
-    // const uploading = uploadImage(`ai-${id}.png`, croppedImg.url);
-    // console.timeLog(logId, i + '_uploadImage waiting...');
-    // const uploadToPrintifyRes = await uploading;
-    // console.timeLog(logId, i + '_uploadImage done');
-    // console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
+    const uploading = uploadImage(`ai-${id}.png`, croppedImg.url);
+    console.timeLog(logId, i + '_uploadImage waiting...');
+    const uploadToPrintifyRes = await uploading;
+    console.timeLog(logId, i + '_uploadImage done');
+    console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
 
-    // imagesCollection.updateOne(imagesQuery, {
-    //   $set: {
-    //     [`images.${id}.printifyId`]: uploadToPrintifyRes.id
-    //   }
-    // }, { upsert: true }).catch(console.error);
+    imagesCollection.updateOne(imagesQuery, {
+      $set: {
+        [`images.${id}.printifyId`]: uploadToPrintifyRes.id
+      }
+    }, { upsert: true }).catch(console.error);
     
     await upscaling;
     console.timeLog(logId, i + '_upscaling done');
@@ -206,7 +219,10 @@ api.post('/webhook-scale', async (req, res) => {
         [`images.${id}`]: { $exists: true }
       },
       { 
-        $set: { [`images.${id}.imageFull`]: req.body.output, [`images.${id}.printifyId`]: uploadToPrintifyRes.id }
+        $set: {
+          [`images.${id}.imageFull`]: req.body.output,
+          [`images.${id}.printifyId`]: uploadToPrintifyRes.id
+        }
       }
     );
     pusher.trigger(requestId, '1', {

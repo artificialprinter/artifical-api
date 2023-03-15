@@ -27,6 +27,21 @@ export const read = async (filename) => {
       }
 };
 
+
+
+export const remove = async (filename) => {
+  try {
+    let s3File = await storage.deleteObject({
+      Bucket: process.env.CYCLIC_BUCKET_NAME,
+      Key: filename,
+    }).promise();
+
+    return Buffer.from(s3File.Body);
+  } catch (error) {
+    return { error };
+  }
+};
+
 export const readStream = (filename) => {
   return storage.getObject({
     Bucket: process.env.CYCLIC_BUCKET_NAME,
