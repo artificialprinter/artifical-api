@@ -4,7 +4,13 @@
   "description": "Serverless Cloud JavaScript API template",
   "main": "index.js",
   "type": "module",
-  "scripts": {},
+  "engines": {
+    "node": "18 || 20 || 22"
+  },
+  "engineStrict": true,
+  "scripts": {
+    "start": "node -r dotenv/config index.js"
+  },
   "devDependencies": {
     "eslint": "^8.33.0"
   },

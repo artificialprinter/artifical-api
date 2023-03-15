@@ -1,0 +1,16 @@
+{
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "events": {
+    "restart": "node -e \"console.log('[nodemon] restart by', '$FILENAME')\""
+  },
+  "execMap": {
+    "js": "node -r dotenv/config"
+  },
+  "ext": "js,json",
+  "ignore": [".git", "node_modules/**/node_modules"],
+  "restartable": "rs",
+  "verbose": true,
+  "watch": ["index.js", "util/", "public/", ".env"]
+}

@@ -1,17 +1,14 @@
-import express from 'express';
-import * as dotenv from 'dotenv';
 import {setTimeout} from 'node:timers/promises';
+import os from 'node:os';
 
-dotenv.config();
-
-import cors from 'cors';
 import bodyParser from 'body-parser';
-import sharp from 'sharp';
+import cors from 'cors';
+import express from 'express';
 
-import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
-import { loadImageFromUrl, cropImageSharp, cropImageJimp, upscaleImage } from './util/image-handler.js';
 import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
+import { loadImageFromUrl, cropImageSharp, cropImageJimp, upscaleImage } from './util/image-handler.js';
+import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
 import { write, read, readStream } from './util/filestorage.js';
 
 const api = express();
@@ -26,7 +23,11 @@ const pusher = new Pusher({
   useTLS: true
 });
 
-api.use('/favicon.ico', express.static('./public/favicon.ico'));
+api.use('/favicon.ico', express.static('./public/favicon.ico', {
+  maxAge: 1000 * 60 * 60 * 8, // 8h
+  immutable: true
+}));
+
 api.use(cors());
 api.use(bodyParser.json());
 
@@ -135,17 +136,17 @@ api.post('/webhook-diffusion', async (req, res) => {
   // parallel 2 images
   const promises = req.body.output.map(async (imgUrl, i) => {
     const id = imgUrl.split('/').at(-2);
-    console.timeLog(logId, i);
+    console.timeLog(logId, i + '_parallel');
 
     await setTimeout(i * 100);
-    console.timeLog(logId, i + '_upscaling started');
+    console.timeLog(logId, i + '_loading started');
 
     const bufferImage = await loadImageFromUrl(imgUrl);
 
     console.timeLog(logId, i + '_crop waiting...');
     const croppedImg = await Promise.race([
-      cropImageSharp(sharp(bufferImage), requestId),
-      cropImageJimp(bufferImage, requestId),
+      cropImageSharp(bufferImage, requestId, i),
+      cropImageJimp(bufferImage, requestId, i),
     ]);
     console.timeLog(logId, i + '_crop done, winner ' + croppedImg.lib);
     await write(croppedImg.name, croppedImg.buffer);
@@ -328,6 +329,13 @@ api.get('/images/v0/:image', async (req, res) => {
       return sendImage(image, res);
     }
 });
+
+api.get('/os', (req, res) => {
+  const prop = os[req.query.q || 'cpus'];
+  res.json(prop?.() || prop);
+});
+
+api.get('/pv', (req, res) => res.json(process.versions));
 
 // use stream - piping img from s3 to response
 api.get('/images/:image', async (req, res) => {

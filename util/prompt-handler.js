@@ -1,38 +1,39 @@
+import promptData from './prompt-data.js';
+
 const IMAGE_MAX_SIZE = {
     width: 512,
     height: 512,
 };
+
 const HOST = process.env.CYCLIC_URL || 'localhost';
+const getHost = () => HOST;
+
 const IMAGES_PER_REQUEST = 2;
-import promptData from './prompt-data.js';
 
-async function promptGenerate(prompt, randomPromptsCount) {
-    const randomKeys = [
-      Math.floor(Math.random() * (promptData.length - Math.floor(promptData.length/2)) + Math.floor(promptData.length/2)), 
-      Math.floor(Math.random() * Math.floor(promptData.length / 2))
-    ];
-    const result = [];
+const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-    console.log('randomKeys', randomKeys);
+async function promptGenerate(prompt, rndPromptsCount) {
+  const rndOffset = promptData.length / rndPromptsCount; 
+  const result = Array(rndPromptsCount)
+    .fill()
+    .map((_v, i) => rndInt(rndOffset * i, rndOffset * (i + 1)))
+    .map(rndKey => `${prompt}, ${promptData[rndKey].value}`);
 
-    for (let i = 0; i < randomPromptsCount; i++) {
-      randomKeys[i] && promptData[randomKeys[i]] && result.push(`${prompt}, ${promptData[randomKeys[i]].value}`);
-    }
-
-    return result;
+  return result;
 }
 
 async function allPromptsGenerate(prompt) {
-    const prompts = [];
+  const prompts = Array(promptData.length);
 
-    promptData.forEach((item) => {
-      prompts.push(`${prompt}, ${item.value}`);
-    });
+  promptData.forEach((item, i) => {
+    prompts[i] = `${prompt}, ${item.value}`;
+  });
 
-    return prompts;
+  return prompts;
 }
 
 function promptDiffusion(prompt) {
+  console.log('`${getHost()}/webhook-diffusion` :>> ', `${getHost()}/webhook-diffusion`);
     return fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
@@ -46,7 +47,7 @@ function promptDiffusion(prompt) {
             image_dimensions: `${IMAGE_MAX_SIZE.width}x${IMAGE_MAX_SIZE.height}`,
             num_outputs: IMAGES_PER_REQUEST
           },
-          webhook_completed: `${HOST}/webhook-diffusion`
+          webhook_completed: `${getHost()}/webhook-diffusion`
         }),
       });
 }
@@ -56,7 +57,8 @@ function promptDiffusion(prompt) {
  */
 
 export {
-    promptGenerate,
-    allPromptsGenerate,
-    promptDiffusion
+  promptGenerate,
+  allPromptsGenerate,
+  promptDiffusion
 };
+
