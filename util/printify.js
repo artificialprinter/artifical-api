@@ -124,8 +124,12 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
   const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
   const headers = new Headers();
   const userPrompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
+  const filteredOptions = new Set(filteredVariants.reduce((prev, curr) => {
+    prev.push(...Object.values(curr.options));
+    return prev;
+  }, []));
 
-  console.log('filteredVariants', filteredVariants.length, filteredVariants);
+  console.log('filteredVariants', filteredVariants.length, ...filteredOptions);
   
   headers.append('Authorization', `Bearer ${apiKey}`);
   headers.append('Content-Type', 'application/json');

@@ -145,11 +145,12 @@ api.post('/webhook-diffusion', async (req, res) => {
 
     console.timeLog(logId, i + '_crop waiting...');
     const croppedImg = await Promise.race([
-      cropImageSharp(bufferImage, requestId, i),
-      cropImageJimp(bufferImage, requestId, i),
+      cropImageSharp(bufferImage, id, i),
+      // cropImageJimp(bufferImage, id, i),
     ]);
     console.timeLog(logId, i + '_crop done, winner ' + croppedImg.lib);
     await write(croppedImg.name, croppedImg.buffer);
+    const upscaling = upscaleImage(croppedImg.url, croppedImg.name, requestId);
     console.timeLog(logId, i + '_crop write done');
 
     imagesObj[id].generatedImg = croppedImg.url;
@@ -162,17 +163,17 @@ api.post('/webhook-diffusion', async (req, res) => {
     };
     imagesCollection.updateOne(imagesQuery, { $set: _updateQuery }, { upsert: true }).catch(console.error);
 
-    const uploading = uploadImage(`ai-scale-diffusion-result-${id}.png`, croppedImg.url);
-    const upscaling = upscaleImage(imgUrl).catch(console.error);
-    console.timeLog(logId, i + '_uploadImage waiting...');
-    const uploadToPrintifyRes = await uploading;
-    console.timeLog(logId, i + '_uploadImage done');
+    // const uploading = uploadImage(`ai-${id}.png`, croppedImg.url);
+    // console.timeLog(logId, i + '_uploadImage waiting...');
+    // const uploadToPrintifyRes = await uploading;
+    // console.timeLog(logId, i + '_uploadImage done');
+    // console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
 
-    imagesCollection.updateOne(imagesQuery, {
-      $set: {
-        [`images.${id}.printifyId`]: uploadToPrintifyRes.id
-      }
-    }, { upsert: true }).catch(console.error);
+    // imagesCollection.updateOne(imagesQuery, {
+    //   $set: {
+    //     [`images.${id}.printifyId`]: uploadToPrintifyRes.id
+    //   }
+    // }, { upsert: true }).catch(console.error);
     
     await upscaling;
     console.timeLog(logId, i + '_upscaling done');
@@ -190,8 +191,15 @@ api.post('/webhook-diffusion', async (req, res) => {
 
 api.post('/webhook-scale', async (req, res) => {
   if (req.body?.output) {
-    const id = req.body.input?.image.split('/').at(-2) || req.body.id;
-    const uploadToPrintifyRes = await uploadImage(`ai-scale-diffusion-result-${id}.png`, req.body.output);
+    const {
+      requestId
+    } = req.body.input;
+    const name = (req.body.input.name || req.body.input.image.split('/').at(-1)).slice(5, -4);
+    const id = name || req.body.id;
+    console.log('name, id :>> ', name, req.body.id);
+    const uploadToPrintifyRes = await uploadImage(`ai-${id}.png`, req.body.output);
+
+    console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
 
     const updateResult = await imagesCollection.updateOne(
       {
@@ -201,6 +209,14 @@ api.post('/webhook-scale', async (req, res) => {
         $set: { [`images.${id}.imageFull`]: req.body.output, [`images.${id}.printifyId`]: uploadToPrintifyRes.id }
       }
     );
+    pusher.trigger(requestId, '1', {
+      step: 3,
+      images: {
+        [id]: {
+          printifyId: uploadToPrintifyRes.id
+        }
+      }
+    });
 
     res.status(200).send(updateResult);
   } else {

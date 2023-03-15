@@ -12,14 +12,23 @@ const IMAGES_PER_REQUEST = 2;
 
 const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-async function promptGenerate(prompt, rndPromptsCount) {
-  const rndOffset = promptData.length / rndPromptsCount; 
-  const result = Array(rndPromptsCount)
-    .fill()
-    .map((_v, i) => rndInt(rndOffset * i, rndOffset * (i + 1)))
-    .map(rndKey => `${prompt}, ${promptData[rndKey].value}`);
+function getRandomElements(arr, count) {
+  const rndOffset = Math.floor(arr.length / count);
+  const remnant = arr.length % count;
 
-  return result;
+  return Array(count)
+    .fill()
+    .map((_v, i) => {
+      const min = rndOffset * i;
+      const max = rndOffset * (i + 1) + (i === count - 1 ? remnant : 0) - 1;
+
+      return rndInt(min, max);
+    });
+}
+
+async function promptGenerate(prompt, rndPromptsCount) {
+  return getRandomElements(prompt, rndPromptsCount)
+    .map(rndKey => `${prompt}, ${promptData[rndKey].value}`);
 }
 
 async function allPromptsGenerate(prompt) {
@@ -33,7 +42,6 @@ async function allPromptsGenerate(prompt) {
 }
 
 function promptDiffusion(prompt) {
-  console.log('`${getHost()}/webhook-diffusion` :>> ', `${getHost()}/webhook-diffusion`);
     return fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
