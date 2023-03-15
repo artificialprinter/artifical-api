@@ -19,7 +19,7 @@ export default [
     },
     {
         'key': 'extend-text:4',
-        'value': ' by tim okamura, victor nizovtsev, noah bradley, trending on artstation, 8k, masterpiece, graffiti paint, fine detail, full of color, intricate detail, illustration',
+        'value': 'by tim okamura, victor nizovtsev, noah bradley, trending on artstation, 8k, masterpiece, graffiti paint, fine detail, full of color, intricate detail, illustration',
         'created': '2023-02-02T14:24:16.000Z',
         'modified': '2023-02-02T14:24:16.000Z'
     },

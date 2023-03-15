@@ -139,7 +139,7 @@ export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, 
       headers: headers,
       redirect: 'follow',
       body: JSON.stringify({
-          'title': `${userPrompt} - ${number || Math.floor(Math.random() * 100)}`,
+          'title': `${userPrompt} - ${number || Math.floor(Math.random() * 1000)}`,
           'description': prompt || '',
           'blueprint_id': blueprintId,
           'print_provider_id': providerId,

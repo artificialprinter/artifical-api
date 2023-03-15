@@ -38,6 +38,8 @@ async function allPromptsGenerate(prompt) {
     prompts[i] = `${prompt}, ${item.value}`;
   });
 
+  prompts.sort(() => Math.random() - 0.5);
+
   return prompts;
 }
 
@@ -53,7 +55,8 @@ function promptDiffusion(prompt) {
           input: { 
             prompt,
             image_dimensions: `${IMAGE_MAX_SIZE.width}x${IMAGE_MAX_SIZE.height}`,
-            num_outputs: IMAGES_PER_REQUEST
+            num_outputs: IMAGES_PER_REQUEST,
+            negative_prompt: 'Not centered, cropped'
           },
           webhook_completed: `${getHost()}/webhook-diffusion`
         }),
