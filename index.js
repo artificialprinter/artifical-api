@@ -19,13 +19,22 @@ let pusher = {
   instance: null,
   get lazyInstance() {
     if (!pusher.instance) {
-      pusher.instance = new Pusher({
-        appId: '1565571',
-        key: 'de22d0c16c3acf27abc0',
-        secret: 'df9fabf4bffb6e0ca242',
-        cluster: 'eu',
-        useTLS: true
-      });
+      try {
+        pusher.instance = new Pusher({
+          appId: '1565571',
+          key: 'de22d0c16c3acf27abc0',
+          secret: 'df9fabf4bffb6e0ca242',
+          cluster: 'eu',
+          useTLS: true
+        });
+      } catch (e) {
+        console.error(e);
+        pusher.instance = {
+          trigger(...data) {
+            console.log('Pusher not started, data not triggered', ...data);
+          }
+        };
+      }
     }
 
     return pusher.instance;
