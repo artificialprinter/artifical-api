@@ -94,7 +94,7 @@ export async function cropImageSharp(imgBuffer, id) {
   console.timeLog(label, 'meta');
 
   const croppedImageBuffer = await sharpImg
-    .resize(round(sharpImgMeta.width / 1.12), sharpImgMeta.height)
+    .resize(round(sharpImgMeta.width / 1.3), sharpImgMeta.height)
     .toBuffer(); /** RESULT WITH T-SHIRT */
 
   const name = `${CROP_URL_PREFIX}-${id}.png`;
