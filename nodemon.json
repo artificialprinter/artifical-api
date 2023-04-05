@@ -1,6 +1,6 @@
 {
   "env": {
-    "NODE_ENV": "development"
+    "NODE_ENV": "production"
   },
   "events": {
     "restart": "node -e \"console.log('[nodemon] restart by', '$FILENAME')\""

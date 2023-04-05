@@ -58,7 +58,7 @@ function promptDiffusion(prompt) {
             num_outputs: IMAGES_PER_REQUEST,
             negative_prompt: 'Not centered, cropped'
           },
-          webhook_completed: `${getHost()}/webhook-diffusion`
+          webhook_completed: `${getHost()}/webhooks/replicate-diffusion`
         }),
       });
 }

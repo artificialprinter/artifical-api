@@ -1,3 +1,5 @@
+import TimeLogger from './time-logger.js';
+
 const apiKey = process.env.PRINTIFY_API_KEY;
 const SHOP_NAME = 'Artificial Printer';
 const T_SHIRT_BLUEPRINT_NAME = 'Unisex Jersey Short Sleeve Tee';
@@ -18,181 +20,122 @@ const T_SHIRT_VARIANTS = [
 
 let providersCache = {};
 
-export const uploadImage = async (imageName, imageUrl) => {
-    const headers = new Headers();
-    
-    headers.append('Content-Type', 'application/json');
-    headers.append('Authorization', `Bearer ${apiKey}`);
-    
-    const requestOptions = {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-            'file_name': imageName,
-            'url': imageUrl
-        }),
-        redirect: 'follow'
-      };
-      
-    const imageResult = await fetch('https://api.printify.com/v1/uploads/images.json', requestOptions);
+async function callPrintify(route, data) {
+  const headers = new Headers();
 
-    return await imageResult.json();
+  headers.append('Authorization', `Bearer ${apiKey}`);
+  headers.append('Content-Type', 'application/json');
+
+  const requestOptions = {
+    method: data ? 'POST' : 'GET',
+    headers,
+    ...data && { body: JSON.stringify(data) },
+    redirect: 'follow'
+  };
+
+  const response = await fetch('https://api.printify.com/' + route, requestOptions);
+
+  return response.json();
+}
+
+export const uploadImage = async (imageName, imageUrl) => {
+  return callPrintify('v1/uploads/images.json', {
+    'file_name': imageName,
+    'url': imageUrl
+  });
 };
 
-export const getShops = (async () => {
-    const headers = new Headers();
-    
-    headers.append('Authorization', `Bearer ${apiKey}`);
-    
-    const requestOptions = {
-        method: 'GET',
-        headers,
-        redirect: 'follow'
-      };
-      
-    const shops = await fetch('https://api.printify.com/v1/shops.json', requestOptions);
-
-    return await shops.json();
-})();
-
-export const getBlueprints = (async () => {
-    const headers = new Headers();
-    
-    headers.append('Authorization', `Bearer ${apiKey}`);
-
-    const requestOptions = {
-        method: 'GET',
-        headers: headers,
-        redirect: 'follow'
-      };
-      
-    const blueprints = await fetch('https://api.printify.com/v1/catalog/blueprints.json', requestOptions);
-
-    return await blueprints.json();
-})();
+export const getShops = callPrintify('v1/shops.json');
+export const getBlueprints = callPrintify('v1/catalog/blueprints.json');
 
 export const getPrintProviders = async (blueprint) => {
   if (providersCache[blueprint]) return providersCache[blueprint];
-
-  const headers = new Headers();
-  
-  headers.append('Authorization', `Bearer ${apiKey}`);
-
-  const requestOptions = {
-      method: 'GET',
-      headers: headers,
-      redirect: 'follow'
-    };
     
-  const providers = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers.json`, requestOptions);
-
-  providersCache[blueprint] = await providers.json();
+  providersCache[blueprint] = await callPrintify(`v1/catalog/blueprints/${blueprint}/print_providers.json`);
 
   return providersCache[blueprint];
 };
 
 export const getProviderVariants = async (blueprint, provider) => {
   if (providersCache[blueprint + provider]) return providersCache[blueprint + provider];
-  const headers = new Headers();
   
-  headers.append('Authorization', `Bearer ${apiKey}`);
-
-  const requestOptions = {
-      method: 'GET',
-      headers: headers,
-      redirect: 'follow'
-    };
-    
-  const variants = await fetch(`https://api.printify.com/v1/catalog/blueprints/${blueprint}/print_providers/${provider}/variants.json`, requestOptions);
-
-  providersCache[blueprint + provider] = await variants.json();
+  providersCache[blueprint + provider] = callPrintify(`v1/catalog/blueprints/${blueprint}/print_providers/${provider}/variants.json`);
 
   return providersCache[blueprint + provider];
 };
 
 export const generateTShirtProduct = async (shops, blueprints, imageId, prompt, number) => {
-  console.time('generateTShirtProduct');
+  const timeLog = TimeLogger('generateTShirtProduct');
   const shopId = shops.filter((shop) => shop.title === SHOP_NAME)[0]?.id;
   const blueprintId = blueprints.filter((blueprint) => blueprint.title === T_SHIRT_BLUEPRINT_NAME)[0]?.id;
-  const providers = await getPrintProviders(blueprintId);
-  console.timeLog('generateTShirtProduct', 'getPrintProviders');
+  const providers = await getPrintProviders(blueprintId); timeLog('getPrintProviders', providers.length);
 
-  const providerId = providers.filter((provider) => provider.title === T_SHIRT_PRINT_PROVIDER_NAME)[0].id;
+  const tShirtProviders = providers.filter((provider) => provider.title === T_SHIRT_PRINT_PROVIDER_NAME);
+  console.log('tShirtProviders :>> ', tShirtProviders);
+  const providerId = tShirtProviders[0].id;
 
-  const variants = await getProviderVariants(blueprintId, providerId);
-  console.timeLog('generateTShirtProduct', 'getProviderVariants');
+  const variants = await getProviderVariants(blueprintId, providerId); timeLog('getProviderVariants');
   const filteredVariants = variants.variants.filter((variant) => T_SHIRT_VARIANTS.includes(variant.title));
-  const headers = new Headers();
   const userPrompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
   const filteredOptions = new Set(filteredVariants.reduce((prev, curr) => {
     prev.push(...Object.values(curr.options));
     return prev;
   }, []));
 
+  console.log('filteredOptions', filteredOptions.length, ...filteredOptions);
   console.log('filteredVariants', filteredVariants.length, ...filteredOptions);
-  
-  headers.append('Authorization', `Bearer ${apiKey}`);
-  headers.append('Content-Type', 'application/json');
 
   const requestOptions = {
-      method: 'POST',
-      headers: headers,
-      redirect: 'follow',
-      body: JSON.stringify({
-          'title': `${userPrompt} - ${number || Math.floor(Math.random() * 1000)}`,
-          'description': prompt || '',
-          'blueprint_id': blueprintId,
-          'print_provider_id': providerId,
-          'variants': filteredVariants.map((variant) => {
-              return {
-                  id: variant.id,
-                  price: T_SHIRT_PRICE,
-                  options: [873,874,14,15,16,17],
-                  is_enabled: true
-              };
-          }),
-          'print_areas': [
-            {
-              'variant_ids': filteredVariants.map((variant) => variant.id),
-              'placeholders': [
+    'title': `${userPrompt} - ${number || Math.floor(Math.random() * 1000)}`,
+    'description': prompt || '',
+    'blueprint_id': blueprintId,
+    'print_provider_id': providerId,
+    'variants': filteredVariants.map((variant) => {
+        return {
+            id: variant.id,
+            price: T_SHIRT_PRICE,
+            options: [873,874,14,15,16,17,18],
+            is_enabled: true
+        };
+    }),
+    'print_areas': [
+      {
+        'variant_ids': filteredVariants.map((variant) => variant.id),
+        'placeholders': [
+          {
+            'position': 'front',
+            'images': [
                 {
-                  'position': 'front',
-                  'images': [
-                      {
-                        'id': imageId, 
-                        'x': 0.5, 
-                        'y': 0.5, 
-                        'scale': 1,
-                        'angle': 0
-                      }
-                  ]
+                  'id': imageId, 
+                  'x': 0.5, 
+                  'y': 0.5, 
+                  'scale': 1,
+                  'angle': 0
                 }
-              ]
-            }
-          ]
-        })
+            ]
+          }
+        ]
+      }
+    ]
   };
 
-  const product = await fetch(`https://api.printify.com/v1/shops/${shopId}/products.json`, requestOptions);
-  const productResult = await product.json();
-  console.timeLog('generateTShirtProduct', 'productResult');
+  const productResult = await callPrintify(`v1/shops/${shopId}/products.json`, requestOptions); timeLog('productResult');
 
-  await fetch(`https://api.printify.com/v1/shops/${shopId}/products/${productResult.id}/publish.json`, {
-      method: 'POST',
-      headers: headers,
-      redirect: 'follow',
-      body: JSON.stringify({
-          'title': true,
-          'description': true,
-          'images': false,
-          'variants': false,
-          'tags': true,
-          'keyFeatures': true,
-          'shipping_template': true
-      })
-  });
+  // todo: determinse do we need  to publish product in strategy: ai - shopify - printify
+  // await callPrintify(
+  //   `v1/shops/${shopId}/products/${productResult.id}/publish.json`,
+  //   {
+  //     'title': true,
+  //     'description': true,
+  //     'images': false,
+  //     'variants': false,
+  //     'tags': true,
+  //     'keyFeatures': true,
+  //     'shipping_template': true
+  //   }
+  // );
 
-  console.timeEnd('generateTShirtProduct');
+  timeLog(TimeLogger.END);
 
   return productResult;
 };

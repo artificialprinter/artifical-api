@@ -1,251 +1,31 @@
-import {setTimeout} from 'node:timers/promises';
 import os from 'node:os';
 
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
+import compression from 'compression';
 
-import { getShops, uploadImage, getBlueprints, generateTShirtProduct } from './util/printify.js';
+import { getShops, getBlueprints, generateTShirtProduct } from './util/printify.js';
 import { imagesCollection } from './util/db.js';
-import { loadImageFromUrl, cropImageSharp, cropImageJimp, upscaleImage } from './util/image-handler.js';
 import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
-import { write, read, readStream, remove } from './util/filestorage.js';
+import { read, readStream } from './util/filestorage.js';
+import webhooksController from './controllers/webhooks.js';
 
 const api = express();
 
-import Pusher from 'pusher';
-
-let pusher = {
-  instance: null,
-  get lazyInstance() {
-    if (!pusher.instance) {
-      try {
-        pusher.instance = new Pusher({
-          appId: '1565571',
-          key: 'de22d0c16c3acf27abc0',
-          secret: 'df9fabf4bffb6e0ca242',
-          cluster: 'eu',
-          useTLS: true
-        });
-      } catch (e) {
-        console.error(e);
-        pusher.instance = {
-          trigger(...data) {
-            console.log('Pusher not started, data not triggered', ...data);
-          }
-        };
-      }
-    }
-
-    return pusher.instance;
-  }
-};
-
+api.use(cors());
+api.use(compression());
+api.use(bodyParser.json());
 api.use('/favicon.ico', express.static('./public/favicon.ico', {
   maxAge: 1000 * 60 * 60 * 8, // 8h
   immutable: true
 }));
-
-api.use(cors());
-api.use(bodyParser.json());
-
 api.get('/', async (req, res) => {
-  res.statusCode = 200;
   res.send('<h1>Hello!</h1>');
 });
+api.use('/webhooks', webhooksController());
 
-api.post('/prompt', async (req, res) => {
-  let prompts;
-
-  if (req.body.fullPrompt) {
-    prompts = [req.body.fullPrompt];
-  } else if (req.body.prompt) {
-    if (req.body.preventAutoExtend) {
-      prompts = [req.body.prompt];
-    } else {
-      prompts = await promptGenerate(req.body.prompt, 1);
-    }
-  } else {
-    res.statusCode = 500;
-    res.end(JSON.stringify({ detail: 'Prompt param not provided!' }));
-
-    return;
-  }
-  
-  const result = [];
-
-  for (let i = 0; i < prompts.length; i++) {
-    const response = await promptDiffusion(prompts[i]);
-  
-    if (response.status !== 201) {
-      let error = await response.json();
-
-      res.statusCode = 500;
-      res.end(JSON.stringify({ detail: error.detail }));
-
-      return;
-    }
-
-    const successRes = await response.json();
-  
-    await imagesCollection.insertOne({
-      requestId: successRes.id,
-      initialPrompt: req.body.prompt,
-      prompt: prompts[i]
-    });
-
-    result.push(successRes);
-  }
-
-  console.log('Send prompt result :>> ', result);
-
-  res.statusCode = 201;
-  res.end(JSON.stringify(result));
-});
-
-api.post('/webhook-diffusion', async (req, res) => {
-  if (!req.body?.id) {
-    return res.end({ detail: 'There is an error in Diffusion: no id in body' });
-  }
-
-  if (req.body.error) {
-    imagesCollection
-      .updateOne(imagesQuery, {
-        $set: {
-          error: req.body.error
-        }
-        }, { upsert: true })
-      .catch(console.error);
-    
-    return res.end({ detail: 'There is an error in Diffusion: ' + req.body.error });
-  }
-  
-  const { id: requestId, input: { prompt } } = req.body; 
-  const logId = `webhook-diffusion_${requestId}`;
-
-  console.time(logId);
-
-  const imagesQuery = {
-    prompt,
-    requestId
-  };
-
-  const imagesObj = req.body.output.reduce((obj, url) => {
-    obj[url.split('/').at(-2)] = {
-      generatedImg: url
-    };
-
-    return obj;
-  }, {});
-
-
-  pusher.lazyInstance.trigger(requestId, '1', {
-    step: 1,
-    images: imagesObj,
-  });
-
-  // save immediately
-  imagesCollection.updateOne(imagesQuery, {
-    $set: {
-      images: imagesObj
-    }
-  }, { upsert: true }).catch(console.error);
-
-  // parallel 2 images
-  const promises = req.body.output.map(async (imgUrl, i) => {
-    const id = imgUrl.split('/').at(-2);
-    console.timeLog(logId, i + '_parallel');
-
-    await setTimeout(i * 100);
-    console.timeLog(logId, i + '_loading started');
-
-    const bufferImage = await loadImageFromUrl(imgUrl);
-
-    console.timeLog(logId, i + '_crop waiting...');
-    const croppedImg = await Promise.race([
-      cropImageSharp(bufferImage, id, i),
-      // cropImageJimp(bufferImage, id, i),
-    ]);
-    console.timeLog(logId, i + '_crop done, winner ' + croppedImg.lib);
-    await write(croppedImg.name, croppedImg.buffer);
-    const upscaling = upscaleImage(croppedImg.url, croppedImg.name, requestId);
-    console.timeLog(logId, i + '_crop write done');
-
-    imagesObj[id].generatedImg = croppedImg.url;
-    pusher.lazyInstance.trigger(requestId, '1', {
-      step: 2,
-      images: imagesObj
-    });
-    const _updateQuery = {
-      [`images.${id}.generatedImg`]: croppedImg.url
-    };
-    imagesCollection.updateOne(imagesQuery, { $set: _updateQuery }, { upsert: true }).catch(console.error);
-
-    const uploading = uploadImage(`ai-${id}.png`, croppedImg.url);
-    console.timeLog(logId, i + '_uploadImage waiting...');
-    const uploadToPrintifyRes = await uploading;
-    console.timeLog(logId, i + '_uploadImage done');
-    console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
-
-    imagesCollection.updateOne(imagesQuery, {
-      $set: {
-        [`images.${id}.printifyId`]: uploadToPrintifyRes.id
-      }
-    }, { upsert: true }).catch(console.error);
-    
-    await upscaling;
-    console.timeLog(logId, i + '_upscaling done');
-  });
-
-  Promise.all(promises).then(() => {
-    console.timeEnd(logId);
-  }).catch(error => {
-    console.error(error);
-    console.timeEnd(logId);
-  });
-
-  res.status(200).send({});
-});
-
-api.post('/webhook-scale', async (req, res) => {
-  if (req.body?.output) {
-    const {
-      requestId
-    } = req.body.input;
-    const name = (req.body.input.name || req.body.input.image.split('/').at(-1)).slice(5, -4);
-    const id = name || req.body.id;
-    console.log('name, id :>> ', name, req.body.id);
-    const uploadToPrintifyRes = await uploadImage(`ai-${id}.png`, req.body.output);
-
-    console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
-
-    const updateResult = await imagesCollection.updateOne(
-      {
-        [`images.${id}`]: { $exists: true }
-      },
-      { 
-        $set: {
-          [`images.${id}.imageFull`]: req.body.output,
-          [`images.${id}.printifyId`]: uploadToPrintifyRes.id
-        }
-      }
-    );
-    pusher.lazyInstance.trigger(requestId, '1', {
-      step: 3,
-      images: {
-        [id]: {
-          printifyId: uploadToPrintifyRes.id
-        }
-      }
-    });
-
-    res.status(200).send(updateResult);
-  } else {
-    res.statusCode = 500;
-    res.end(JSON.stringify({ detail: 'There is an error in Scale: output is empty. Images did not generated' }));
-  }
-});
-
+api.post('/prompt', promptHandler);
 
 api.get('/image', async (req, res) => {  
   let result;
@@ -263,7 +43,6 @@ api.get('/image', async (req, res) => {
 
   res.status(200).send(result);
 });
-
 
 api.get('/last-images', async (req, res) => {  
   const length = req.query.length? parseInt(req.query.length, 10) : 10;
@@ -336,6 +115,7 @@ async function sendImageStream(image, res) {
         res.end(JSON.stringify({ detail: fileResult.error }));
         return;
       }
+      console.log('headers :>> ', headers);
       res.set('Content-Length', headers['content-length']);
       res.set('Cache-Control', 'max-age=31536000'); // 1 year
       res.set('Content-Type', headers['content-type'] || 'image/png');
@@ -423,3 +203,52 @@ const port = process.env.PORT || 3000;
 api.listen(port, () => {
   console.log(`index.js listening at http://localhost:${port}`);
 });
+
+async function promptHandler(req, res) {
+  let prompts;
+
+  if (req.body.fullPrompt) {
+    prompts = [req.body.fullPrompt];
+  } else if (req.body.prompt) {
+    if (req.body.preventAutoExtend) {
+      prompts = [req.body.prompt];
+    } else {
+      prompts = await promptGenerate(req.body.prompt, 1);
+    }
+  } else {
+    res.statusCode = 500;
+    res.end(JSON.stringify({ detail: 'Prompt param not provided!' }));
+
+    return;
+  }
+
+  const result = [];
+
+  for (let i = 0; i < prompts.length; i++) {
+    const response = await promptDiffusion(prompts[i]);
+
+    if (response.status !== 201) {
+      let error = await response.json();
+
+      res.statusCode = 500;
+      res.end(JSON.stringify({ detail: error.detail }));
+
+      return;
+    }
+
+    const successRes = await response.json();
+
+    await imagesCollection.insertOne({
+      requestId: successRes.id,
+      initialPrompt: req.body.prompt,
+      prompt: prompts[i]
+    });
+
+    result.push(successRes);
+  }
+
+  console.log('Send prompt result :>> ', result);
+
+  res.statusCode = 201;
+  res.end(JSON.stringify(result));
+}
