@@ -37,7 +37,7 @@ if (orderWebhook) {
 if (!orderWebhook) {
   const webhook = new shopify.rest.Webhook({ session });
 
-  webhook.topic = 'carts/update';
+  webhook.topic = 'orders/update';
   webhook.address = process.env.CYCLIC_URL + '/webhooks/shopify-order';
   webhook.format = 'json';
   webhook.metafield_namespaces = ['global'];

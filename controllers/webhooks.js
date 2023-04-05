@@ -190,7 +190,7 @@ async function shopifyOrder(req, res) {
       },
     }); logger('metafields loaded', metafields);
 
-    const skuId = (shopifyProduct.metafields || metafields).find(item => item.key === 'skuId').at(0)?.value;
+    const skuId = (shopifyProduct.metafields || metafields).find(item => item.key === 'skuId')?.value;
     if (!skuId) return console.error('no sku id', productId);
     const doc = await imagesCollection.findOne({
       requestId: skuId.slice(0, -1)
