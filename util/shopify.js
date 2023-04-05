@@ -25,7 +25,7 @@ export const session = shopify.session.customAppSession(hostName);
 const activeWebhooks = await shopify.rest.Webhook.all({ session });
 
 console.log(...activeWebhooks);
-let orderWebhook = activeWebhooks.find(item => item.topic === 'carts/update');
+let orderWebhook = activeWebhooks.find(item => item.topic === 'carts/updated');
 if (orderWebhook) {
   console.log('orderWebhook :>> ', orderWebhook.id);
   await shopify.rest.Webhook.delete({
@@ -37,7 +37,7 @@ if (orderWebhook) {
 if (!orderWebhook) {
   const webhook = new shopify.rest.Webhook({ session });
 
-  webhook.topic = 'orders/update';
+  webhook.topic = 'carts/updated';
   webhook.address = process.env.CYCLIC_URL + '/webhooks/shopify-order';
   webhook.format = 'json';
   webhook.metafield_namespaces = ['global'];
