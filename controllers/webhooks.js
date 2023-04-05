@@ -212,6 +212,10 @@ async function shopifyOrder(req, res) {
       shopifyProduct.handle.split('-').at(-1)
     ); logger('generateTShirtProduct', printifyProductId);
 
+    if (!printifyProductId) {
+      console.error('missing printifyProductId')
+    }
+
     await imagesCollection.updateOne({ _id: doc._id }, {
       $set: {
         [`images.${imgKey}.printifyId`]: printifyId,
@@ -220,12 +224,12 @@ async function shopifyOrder(req, res) {
     }); logger('updated printifyProductId');
 
     await updateMetafields(Product, productId, {
-      printifyProductId: doc.images[imgKey].printifyProductId
+      printifyProductId: printifyProductId
     }); logger('updated Metafields');
 
     console.log('printify product id added to shopify product metadata :>> ', {
       shopifyProductId: productId,
-      printifyProductId: doc.images[imgKey].printifyProductId
+      printifyProductId: printifyProductId
     });
   }
   logger(TimeLogger.END);
