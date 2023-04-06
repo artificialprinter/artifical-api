@@ -82,7 +82,7 @@ async function replicateDiffusion(req, res) {
       // cropImageJimp(bufferImage, id, i),
     ]); logger(i + '_crop done, winner ' + croppedImg.lib);
 
-    await write(croppedImg.name, croppedImg.buffer);
+    // await write(croppedImg.name, croppedImg.buffer);
     // const upscaling = upscaleImage(croppedImg.url, croppedImg.name, requestId); logger(i + '_crop write done');
     const product = await createProduct({
       title: doc.initialPrompt,
@@ -90,6 +90,7 @@ async function replicateDiffusion(req, res) {
       img: croppedImg.tShirtBuffer.toString('base64'),
       skuId: requestId + i,
     });
+    croppedImg.url = product.image.src;
     delete product.variants;
     delete product.options;
     console.log('product id :>> ', product);

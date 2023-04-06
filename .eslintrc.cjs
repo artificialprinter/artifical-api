@@ -1,7 +1,7 @@
 module.exports = {
     'env': {
         'node': true,
-        'es2021': true
+        'es2022': true
     },
     'extends': 'eslint:recommended',
     'overrides': [
@@ -11,7 +11,6 @@ module.exports = {
         'sourceType': 'module'
     },
     'rules': {
-        'semi': ['error', 'always'],
         'quotes': ['error', 'single']
     }
 };
