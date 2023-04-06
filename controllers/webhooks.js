@@ -82,15 +82,15 @@ async function replicateDiffusion(req, res) {
       // cropImageJimp(bufferImage, id, i),
     ]); logger(i + '_crop done, winner ' + croppedImg.lib);
 
-    // await write(croppedImg.name, croppedImg.buffer);
+    await write(croppedImg.name, croppedImg.buffer); logger(i + 'write to s3 done');
     // const upscaling = upscaleImage(croppedImg.url, croppedImg.name, requestId); logger(i + '_crop write done');
     const product = await createProduct({
       title: doc.initialPrompt,
       description: prompt,
       img: croppedImg.tShirtBuffer.toString('base64'),
       skuId: requestId + i,
-    });
-    croppedImg.url = product.image.src;
+    }); logger(i + 'create shopify product done');
+
     delete product.variants;
     delete product.options;
     console.log('product id :>> ', product);
@@ -108,7 +108,7 @@ async function replicateDiffusion(req, res) {
     };
     await imagesCollection.updateOne({ _id: doc._id }, { $set: _updateQuery });
       // .catch(console.error);
-
+    logger(i + 'db doc updated and ready to be displayed', new Date().toISOString());
     // !note! no more upload here in flow "replicate-shopifi-order-printify"
     // const uploading = uploadImage(`ai-${id}.png`, croppedImg.url); logger(i + '_uploadImage waiting...');
     // const uploadToPrintifyRes = await uploading; logger(i + '_uploadImage done');
