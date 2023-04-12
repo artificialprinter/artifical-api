@@ -1,137 +1,18 @@
-import timers from 'node:timers/promises';
 import express from 'express';
 
 import TimeLogger from '../util/time-logger.js';
 import { imagesCollection } from '../util/db.js';
 import serverEvent from '../util/server-event.js';
-import { cropImageSharp, loadImageFromUrl } from '../util/image-service.js';
-import { write } from '../util/filestorage.js';
-import shopify, { Metafield, Product, createProduct, session, updateMetafields } from '../util/shopify.js';
+import shopify, { Metafield, Product, session, updateMetafields } from '../util/shopify.js';
 import { generateTShirtProduct, getBlueprints, getShops, uploadImage } from '../util/printify.js';
 
 export default function webhooksController() {
   const webhooksRouter = express.Router();
 
-  webhooksRouter.post('/replicate-diffusion', replicateDiffusion);
   webhooksRouter.post('/replicate-scale', replicateScale);
   webhooksRouter.post('/shopify-order', shopifyOrder);
 
   return webhooksRouter;
-}
-
-async function replicateDiffusion(req, res) {
-  const { id: requestId, input: { prompt }, error, output } = req.body;
-
-  if (!requestId) {
-    return res.end({ detail: 'There is an error in Diffusion: no id in body' });
-  }
-
-  const logger = TimeLogger(`webhook-diffusion_${requestId}`);
-
-  const doc = await imagesCollection.findOne({
-    requestId
-  });
-
-  logger('mongodb - doc found');
-
-  if (error) {
-    imagesCollection
-      .updateOne({ _id: doc._id }, {
-        $set: {
-          error: error
-        }
-      })
-      .catch(console.error);
-
-    logger('end', error);
-
-    return res.end({ detail: 'There is an error in Diffusion: ' + error });
-  }
-
-  const imagesObj = output.reduce((obj, url) => {
-    obj[url.split('/').at(-2)] = {
-      generatedImg: url
-    };
-
-    return obj;
-  }, {});
-
-
-  serverEvent.trigger(requestId, '1', {
-    step: 1,
-    images: imagesObj,
-  });
-
-  // save immediately
-  imagesCollection.updateOne({ _id: doc._id }, {
-    $set: {
-      images: imagesObj,
-      prompt
-    }
-  }).catch(console.error);
-
-  // parallel 2 images
-  const promises = output.map(async (imgUrl, i) => {
-    const id = imgUrl.split('/').at(-2); logger(i + '_parallel');
-
-    await timers.setTimeout(i * 100); logger(i + '_loading started');
-
-    const bufferImage = await loadImageFromUrl(imgUrl); logger(i + '_crop waiting...');
-    const croppedImg = await Promise.race([
-      cropImageSharp(bufferImage, id, i),
-      // cropImageJimp(bufferImage, id, i),
-    ]); logger(i + '_crop done, winner ' + croppedImg.lib);
-
-    await write(croppedImg.name, croppedImg.buffer); logger(i + 'write to s3 done');
-    // const upscaling = upscaleImage(croppedImg.url, croppedImg.name, requestId); logger(i + '_crop write done');
-    const product = await createProduct({
-      title: doc.initialPrompt,
-      description: prompt,
-      img: croppedImg.tShirtBuffer.toString('base64'),
-      skuId: requestId + i,
-    }); logger(i + 'create shopify product done');
-
-    delete product.variants;
-    delete product.options;
-    console.log('product id :>> ', product);
-    imagesObj[id].generatedImg = croppedImg.url;
-    imagesObj[id].productId = product.id.toString();
-    imagesObj[id].handle = product.handle;
-    serverEvent.trigger(requestId, '1', {
-      step: 2,
-      images: imagesObj
-    });
-    const _updateQuery = {
-      [`images.${id}.generatedImg`]: croppedImg.url,
-      [`images.${id}.productId`]: product.id.toString(),
-      [`images.${id}.handle`]: product.handle,
-    };
-    await imagesCollection.updateOne({ _id: doc._id }, { $set: _updateQuery });
-      // .catch(console.error);
-    logger(i + 'db doc updated and ready to be displayed', new Date().toISOString());
-    // !note! no more upload here in flow "replicate-shopifi-order-printify"
-    // const uploading = uploadImage(`ai-${id}.png`, croppedImg.url); logger(i + '_uploadImage waiting...');
-    // const uploadToPrintifyRes = await uploading; logger(i + '_uploadImage done');
-    // console.log('uploadToPrintifyRes.id :>> ', uploadToPrintifyRes.id);
-
-    // imagesCollection.updateOne({ _id: doc._id }, {
-    //   $set: {
-    //     [`images.${id}.printifyId`]: uploadToPrintifyRes.id
-    //   }
-    // }, { upsert: true }).catch(console.error);
-
-    // await upscaling;
-    // console.timeLog(logId, i + '_upscaling done');
-  });
-
-  Promise.all(promises).then(() => {
-    logger(TimeLogger.END);
-  }).catch(error => {
-    console.error(error);
-    logger(TimeLogger.END, error);
-  });
-
-  res.status(200).send({});
 }
 
 async function replicateScale(req, res) {

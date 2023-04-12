@@ -5,9 +5,6 @@ const IMAGE_MAX_SIZE = {
     height: 512,
 };
 
-const HOST = process.env.CYCLIC_URL || 'localhost';
-const getHost = () => HOST;
-
 const IMAGES_PER_REQUEST = 2;
 
 const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -58,7 +55,7 @@ function promptDiffusion(prompt) {
             num_outputs: IMAGES_PER_REQUEST,
             negative_prompt: 'Not centered, cropped'
           },
-          webhook_completed: `${getHost()}/webhooks/replicate-diffusion`
+          webhook_completed: 'https://r4qlyqjkf4sankpkqcvzdqgm540sozvz.lambda-url.eu-central-1.on.aws/'
         }),
       });
 }

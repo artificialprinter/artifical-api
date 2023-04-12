@@ -38,7 +38,7 @@ if (!orderWebhook) {
   const webhook = new shopify.rest.Webhook({ session });
 
   webhook.topic = 'carts/update';
-  webhook.address = process.env.CYCLIC_URL + '/webhooks/shopify-order';
+  webhook.address = 'https://lime-filthy-duckling.cyclic.app/webhooks/shopify-order';
   webhook.format = 'json';
   webhook.metafield_namespaces = ['global'];
   webhook.fields = [
@@ -72,62 +72,6 @@ for (const color of COLORS) for (const size of SIZES) { // =(
   }); // =(
 } // =(
 
-export async function createProduct({
-  title,
-  description = 'T-shirt that is made by you. For you.',
-  img = 'https://cataas.com/cat',
-  skuId,
-}) {
-  const product = new shopify.rest.Product({ session: session });
-  product.title = title + ' - ' + Math.ceil(Math.random() * 999);
-  product.body_html = description;
-  product.vendor = 'Printify';
-  product.product_type = 'T-Shirt';
-  // product.price = 39.99;
-  // eslint-disable-next-line quotes
-  product.tags = "Cotton, Crew neck, DTG, Men's Clothing, Regular fit, T-shirts, Unisex, Women's Clothing",
-  product.images = [
-    {
-      [typeof img === 'string' && img.startsWith('https:') ? 'src' : 'attachment']: img
-    }
-  ];
-  product.variants = variants.map(v => ({
-    ...v,
-    sku: ['UCTS', skuId, colorCodes[v.option1], v.option2].join('-')
-  })); // =(
-  product.options = [
-    {
-      name: 'Color',
-      values: [
-        'White',
-        'Black'
-      ]
-    },
-    {
-      name: 'Size',
-      values: [
-        'M',
-        'S',
-        'L',
-        'XL',
-        'XXL',
-      ]
-    }
-  ];
-  product.metafields = [{
-    key: 'skuId',
-    value: skuId,
-    type: 'single_line_text_field',
-    namespace: 'global',
-  }];
-
-  await product.save({
-    update: true,
-  });
-
-  return product;
-}
-
 export async function updateMetafields(Entity, id, metafields) {
   const item = new Entity({ session: session });
 
@@ -152,7 +96,6 @@ export const Metafield = shopify.rest.Metafield;
 
 export default {
   getProduct,
-  createProduct,
   updateMetafields,
   Order: shopify.rest.Order,
   Product: shopify.rest.Product,
