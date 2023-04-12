@@ -7,7 +7,7 @@ const IMAGE_MAX_SIZE = {
 
 const IMAGES_PER_REQUEST = 2;
 
-const LAMBDA_URL = 'https://r4qlyqjkf4sankpkqcvzdqgm540sozvz.lambda-url.eu-central-1.on.aws/';
+const LAMBDA_URL = 'https://q65eekxnmbwkizo3masynrpea40rylba.lambda-url.us-east-1.on.aws/';
 const REPLICATE_URL = 'https://api.replicate.com/v1/predictions';
 
 const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
