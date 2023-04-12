@@ -15,7 +15,6 @@
     "eslint": "^8.33.0"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.310.0",
     "@rushstack/eslint-patch": "^1.2.0",
     "@shopify/shopify-api": "^6.2.0",
     "aws-sdk": "^2.1320.0",

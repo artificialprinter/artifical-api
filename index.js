@@ -225,6 +225,7 @@ async function promptHandler(req, res) {
   const result = [];
 
   for (let i = 0; i < prompts.length; i++) {
+    const requestedBefore = new Date();
     const response = await promptDiffusion(prompts[i]);
 
     if (response.status !== 201) {
@@ -241,7 +242,9 @@ async function promptHandler(req, res) {
     await imagesCollection.insertOne({
       requestId: successRes.id,
       initialPrompt: req.body.prompt,
-      prompt: prompts[i]
+      prompt: prompts[i],
+      requestedBefore,
+      requestedAfter: new Date()
     });
 
     result.push(successRes);

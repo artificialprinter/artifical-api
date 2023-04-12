@@ -7,6 +7,9 @@ const IMAGE_MAX_SIZE = {
 
 const IMAGES_PER_REQUEST = 2;
 
+const LAMBDA_URL = 'https://r4qlyqjkf4sankpkqcvzdqgm540sozvz.lambda-url.eu-central-1.on.aws/';
+const REPLICATE_URL = 'https://api.replicate.com/v1/predictions';
+
 const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 function getRandomElements(arr, count) {
@@ -24,7 +27,7 @@ function getRandomElements(arr, count) {
 }
 
 async function promptGenerate(prompt, rndPromptsCount) {
-  return getRandomElements(prompt, rndPromptsCount)
+  return getRandomElements(promptData, rndPromptsCount)
     .map(rndKey => `${prompt}, ${promptData[rndKey].value}`);
 }
 
@@ -41,7 +44,7 @@ async function allPromptsGenerate(prompt) {
 }
 
 function promptDiffusion(prompt) {
-    return fetch('https://api.replicate.com/v1/predictions', {
+  return fetch(REPLICATE_URL, {
         method: 'POST',
         headers: {
           Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
@@ -55,7 +58,7 @@ function promptDiffusion(prompt) {
             num_outputs: IMAGES_PER_REQUEST,
             negative_prompt: 'Not centered, cropped'
           },
-          webhook_completed: 'https://r4qlyqjkf4sankpkqcvzdqgm540sozvz.lambda-url.eu-central-1.on.aws/'
+          webhook_completed: LAMBDA_URL
         }),
       });
 }
