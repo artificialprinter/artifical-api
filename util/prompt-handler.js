@@ -97,8 +97,7 @@ function promptSDXL(prompt) {
     redirect: 'follow'
   };
 
-  return fetch(SDXL_URL, requestOptions)
-    .then(response => response.json());
+  return fetch(SDXL_URL, requestOptions);
 }
 
 export {
