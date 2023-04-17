@@ -252,10 +252,16 @@ async function promptHandler(req, res) {
     if (isSDXL) {
       json = {
         id: doc.requestId,
-        import: {
+        input: {
           prompt: prompts[i]
         },
-        output: json.artifacts.filter(({ finishReason }) => finishReason === 'SUCCESS')
+        output: json.artifacts
+          .filter(({ finishReason }) => finishReason === 'SUCCESS')
+          .map(imgOut => {
+            imgOut.id = new ObjectId();
+
+            return imgOut;
+          })
       }
       await fetch(LAMBDA_URL, {
         method: 'POST',
