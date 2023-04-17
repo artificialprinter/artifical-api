@@ -241,7 +241,7 @@ async function promptHandler(req, res) {
     }
 
     const doc = {
-      requestId: json.id || ObjectId(),
+      requestId: json.id || new ObjectId(),
       initialPrompt: req.body.prompt,
       prompt: prompts[i],
       requestedBefore,
