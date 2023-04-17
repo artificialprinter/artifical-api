@@ -71,7 +71,7 @@ function promptDiffusion(prompt) {
 function promptSDXL(prompt) {
   const myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");
-  myHeaders.append(`Authorization", "Bearer ${SDXL_API_TOKEN}`);
+  myHeaders.append("Authorization", `Bearer ${SDXL_API_TOKEN}`);
 
   const raw = JSON.stringify({
     "height": IMAGE_MAX_SIZE.height,
