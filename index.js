@@ -11,7 +11,7 @@ import { promptGenerate, allPromptsGenerate, promptDiffusion, promptSDXL, LAMBDA
 import { read, readStream } from './util/filestorage.js';
 import webhooksController from './controllers/webhooks.js';
 
-const { SDXL_CHANCE_PERCENT = 50 } = process.env;
+const SDXL_CHANCE_PERCENT = parseInt(process.env.SDXL_CHANCE_PERCENT, 10);
 
 const api = express();
 // roses with large thorns on winding branches with dew and mist in the background
