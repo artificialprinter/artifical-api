@@ -87,7 +87,7 @@ function promptSDXL(prompt) {
       }
     ],
     "samples": IMAGES_PER_REQUEST,
-    "style_preset": "anime"
+    // "style_preset": "anime"
   });
 
   const requestOptions = {
