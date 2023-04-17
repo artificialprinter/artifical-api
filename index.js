@@ -249,6 +249,8 @@ async function promptHandler(req, res) {
       isSDXL
     }
 
+    await imagesCollection.insertOne(doc);
+
     if (isSDXL) {
       json = {
         id: doc.requestId,
@@ -271,8 +273,6 @@ async function promptHandler(req, res) {
         body: JSON.stringify(json),
       })
     }
-
-    await imagesCollection.insertOne(doc);
 
     result.push(json);
   }
