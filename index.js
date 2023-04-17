@@ -241,7 +241,7 @@ async function promptHandler(req, res) {
     }
 
     const doc = {
-      requestId: json.id || new ObjectId(),
+      requestId: json.id || new ObjectId().toHexString(),
       initialPrompt: req.body.prompt,
       prompt: prompts[i],
       requestedBefore,
@@ -258,7 +258,7 @@ async function promptHandler(req, res) {
         output: json.artifacts
           .filter(({ finishReason }) => finishReason === 'SUCCESS')
           .map(imgOut => {
-            imgOut.id = new ObjectId();
+            imgOut.id = new ObjectId().toHexString();
 
             return imgOut;
           })
