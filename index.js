@@ -6,13 +6,15 @@ import express from 'express';
 import compression from 'compression';
 
 import { getShops, getBlueprints, generateTShirtProduct } from './util/printify.js';
-import { imagesCollection } from './util/db.js';
-import { promptGenerate, allPromptsGenerate, promptDiffusion } from './util/prompt-handler.js';
+import { imagesCollection, ObjectId } from './util/db.js';
+import { promptGenerate, allPromptsGenerate, promptDiffusion, promptSDXL, LAMBDA_URL } from './util/prompt-handler.js';
 import { read, readStream } from './util/filestorage.js';
 import webhooksController from './controllers/webhooks.js';
 
-const api = express();
+const { SDXL_CHANCE_PERCENT = 50 } = process.env;
 
+const api = express();
+// roses with large thorns on winding branches with dew and mist in the background
 api.use(cors());
 api.use(compression());
 api.use(bodyParser.json());
@@ -226,28 +228,44 @@ async function promptHandler(req, res) {
 
   for (let i = 0; i < prompts.length; i++) {
     const requestedBefore = new Date();
-    const response = await promptDiffusion(prompts[i]);
+    const isSDXL = Math.random() * 100 < SDXL_CHANCE_PERCENT;
+    const response = await (isSDXL ? promptSDXL(prompts[i]) : promptDiffusion(prompts[i]));
+    let json = await response.json();
 
-    if (response.status !== 201) {
-      let error = await response.json();
-
+    if (![200, 201].includes(response.status)) {
+      console.error('genration failed :>> ', json);
       res.statusCode = 500;
-      res.end(JSON.stringify({ detail: error.detail }));
+      res.end(JSON.stringify({ detail: json.detail }));
 
       return;
     }
 
-    const successRes = await response.json();
-
-    await imagesCollection.insertOne({
-      requestId: successRes.id,
+    const doc = {
+      requestId: json.id || ObjectId(),
       initialPrompt: req.body.prompt,
       prompt: prompts[i],
       requestedBefore,
-      requestedAfter: new Date()
-    });
+      requestedAfter: new Date(),
+      isSDXL
+    }
 
-    result.push(successRes);
+    if (isSDXL) {
+      json = {
+        id: doc.requestId,
+        import: {
+          prompt: prompts[i]
+        },
+        output: json.artifacts.filter(({ finishReason }) => finishReason === 'SUCCESS')
+      }
+      await fetch(LAMBDA_URL, {
+        method: 'POST',
+        body: JSON.stringify(json),
+      })
+    }
+
+    await imagesCollection.insertOne(doc);
+
+    result.push(json);
   }
 
   console.log('Send prompt result :>> ', result);

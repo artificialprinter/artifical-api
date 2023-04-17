@@ -82,7 +82,8 @@ async function shopifyOrder(req, res) {
     if (doc.images[imgKey].printifyId) return; // printify product exists
 
     //  todo use upscaled on printify
-    // const upscaling = upscaleImage(croppedImg.url, croppedImg.name, requestId); logger(i + '_crop write done');
+
+    // const upscaling = upscaleImage(doc.images[imgKey].generatedImg, croppedImg.name, skuId); logger(i + '_crop write done');
 
     const { id: printifyId } = await uploadImage(`ai-${skuId}.png`, doc.images[imgKey].generatedImg); logger('printify uploaded', printifyId);
 

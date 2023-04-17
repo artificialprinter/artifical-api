@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
  
   // DB access
   // uoEvFxvzRoQtzQac
@@ -12,7 +12,9 @@ const client = new MongoClient(uri, {
  
 await client.connect();
  
-const db = client.db('sequence');
+export const db = client.db('sequence');
  
 export const imagesCollection = db.collection('ai-images');
 export default db;
+
+export { ObjectId };

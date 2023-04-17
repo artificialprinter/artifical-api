@@ -7,8 +7,13 @@ const IMAGE_MAX_SIZE = {
 
 const IMAGES_PER_REQUEST = 2;
 
-const LAMBDA_URL = 'https://q65eekxnmbwkizo3masynrpea40rylba.lambda-url.us-east-1.on.aws/';
+export const LAMBDA_URL = 'https://q65eekxnmbwkizo3masynrpea40rylba.lambda-url.us-east-1.on.aws/';
 const REPLICATE_URL = 'https://api.replicate.com/v1/predictions';
+const {
+  SDXL_API_TOKEN,
+  SDXL_VERSION = 'stable-diffusion-xl-beta-v2-2-2'
+} = process.env;
+const SDXL_URL = `https://api.stability.ai/v1/generation/${SDXL_VERSION}/text-to-image`;
 
 const rndInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
@@ -63,11 +68,41 @@ function promptDiffusion(prompt) {
       });
 }
 
-/**
- * CUDA out of memory. Tried to allocate 11.25 GiB (GPU 0; 39.59 GiB total capacity; 17.85 GiB already allocated; 3.04 GiB free; 34.80 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
- */
+function promptSDXL(prompt) {
+  const myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+  myHeaders.append(`Authorization", "Bearer ${SDXL_API_TOKEN}`);
+
+  const raw = JSON.stringify({
+    "height": IMAGE_MAX_SIZE.height,
+    "width": IMAGE_MAX_SIZE.width,
+    "text_prompts": [
+      {
+        "text": prompt,
+        "weight": 0.5
+      },
+      {
+        "text": "Not centered, cropped",
+        "weight": -0.5
+      }
+    ],
+    "samples": IMAGES_PER_REQUEST,
+    "style_preset": "anime"
+  });
+
+  const requestOptions = {
+    method: 'POST',
+    headers: myHeaders,
+    body: raw,
+    redirect: 'follow'
+  };
+
+  return fetch(SDXL_URL, requestOptions)
+    .then(response => response.json());
+}
 
 export {
+  promptSDXL,
   promptGenerate,
   allPromptsGenerate,
   promptDiffusion
